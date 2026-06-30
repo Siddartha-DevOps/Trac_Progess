@@ -1,0 +1,8 @@
+{
+  "name": "AI Construction Site Tracker",
+  "description": "An interactive full-stack site progress tracking platform utilizing computer vision, 3D BIM integration with Three.js, and automated AI anomaly detection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

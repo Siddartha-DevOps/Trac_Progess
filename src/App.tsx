@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import BIMViewer from "./components/BIMViewer";
-import AIAnomalyCenter from "./components/AIAnomalyCenter";
-import TechArchitecture from "./components/TechArchitecture";
-import DashboardMetrics from "./components/DashboardMetrics";
+import BIMViewer from "./BIMViewer";
+import AIAnomalyCenter from "./AIAnomalyCenter";
+import TechArchitecture from "./TechArchitecture";
+import DashboardMetrics from "./DashboardMetrics";
+import PRDViewer from "./PRDViewer";
+import RoadmapViewer from "./RoadmapViewer";
 import { BIMElement, Anomaly, ProjectStats } from "./types";
+import { PROJECT_STATS, SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP } from "./data";
 import { 
   Building2, 
   MapPin, 
@@ -16,52 +19,13 @@ import {
   FlameKindling,
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  Milestone
 } from "lucide-react";
 
-// Project Master Stats
-const PROJECT_STATS: ProjectStats = {
-  name: "Bangalore Tech Park - Block B",
-  location: "Whitefield, Bengaluru, India",
-  overallProgress: 72,
-  totalCost: "₹18.5 Crores",
-  constructionArea: "45,000 sq ft",
-  targetDate: "Nov 2026",
-  reraId: "KA-RERA-2026-0389"
-};
-
-// Site Anomalies matched with our 3D elements
-const SITE_ANOMALIES: Anomaly[] = [
-  {
-    id: "anom_rebar_density",
-    elementId: "col_c4",
-    elementName: "Column C4",
-    category: "Reinforcement",
-    title: "Slab Reinforcement Spacing Discrepancy",
-    description: "YOLO-v8 analysis of high-res drone image identifies 15% under-reinforcement density in structural Column C4. Stirrups spacing exceeds IFC design parameters by 85mm.",
-    level: "critical",
-    deviation: "Spacing deviation of +85mm vs. IFC4 standard",
-    possibleCause: "Sub-contractor drawing misinterpretation or rebar shortage",
-    status: "open",
-    detectedAt: "Week 2 - Photo Scan ID #88"
-  },
-  {
-    id: "anom_duct_clash",
-    elementId: "mep_duct_branch",
-    elementName: "Branch HVAC Duct C4",
-    category: "MEP Collision",
-    title: "HVAC Duct to Fire Sprinkler Piping Collision",
-    description: "3D Spatial clash solver flags L1 branch duct colliding directly with the CPVC sprinkler line. Restricts architectural drywall partition erection in L1 Zone B.",
-    level: "high",
-    deviation: "18.5cm volumetric structural collision",
-    possibleCause: "Central coordination error between MEP and HVAC draftsmen",
-    status: "open",
-    detectedAt: "Week 4 - Drone Scan ID #92"
-  }
-];
-
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"tracker" | "ai" | "architecture">("tracker");
+  const [activeTab, setActiveTab] = useState<"tracker" | "ai" | "architecture" | "prd" | "roadmap">("tracker");
   const [currentWeek, setCurrentWeek] = useState<number>(3); // Default to Week 3
   const [selectedElement, setSelectedElement] = useState<BIMElement | null>(null);
   const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null);
@@ -89,12 +53,6 @@ export default function App() {
       setSelectedElement(matchedElem);
     }
   };
-
-  // Helper dictionary to lookup elements in App.tsx
-  const BIM_ELEMENTS_LOOKUP = [
-    { id: "col_c4", name: "Structural Column C4", anomalyId: "anom_rebar_density" },
-    { id: "mep_duct_branch", name: "HVAC Branch Duct C4", anomalyId: "anom_duct_clash" }
-  ] as any[];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans selection:bg-indigo-600 selection:text-white">
@@ -139,7 +97,7 @@ export default function App() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs">
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs gap-0.5">
             <button
               onClick={() => setActiveTab("tracker")}
               className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
@@ -172,6 +130,28 @@ export default function App() {
             >
               <Database className="w-4 h-4" />
               Architecture Spec
+            </button>
+            <button
+              onClick={() => setActiveTab("prd")}
+              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
+                activeTab === "prd" 
+                  ? "bg-white text-indigo-600 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              PRD Doc
+            </button>
+            <button
+              onClick={() => setActiveTab("roadmap")}
+              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
+                activeTab === "roadmap" 
+                  ? "bg-white text-indigo-600 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Milestone className="w-4 h-4 text-pink-500 animate-pulse" />
+              v1.0 Roadmap
             </button>
           </div>
 
@@ -322,6 +302,16 @@ export default function App() {
         {/* TAB 3: Technical Architecture & Python Pipeline Logs */}
         {activeTab === "architecture" && (
           <TechArchitecture />
+        )}
+
+        {/* TAB 4: Product Requirements Document (PRD) */}
+        {activeTab === "prd" && (
+          <PRDViewer />
+        )}
+
+        {/* TAB 5: Production Roadmap to Version 1.0 */}
+        {activeTab === "roadmap" && (
+          <RoadmapViewer />
         )}
 
       </main>

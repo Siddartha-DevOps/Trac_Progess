@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Anomaly, BIMElement } from "../types";
+import { Anomaly, BIMElement } from "./types";
 import { Sparkles, Send, AlertTriangle, CheckCircle2, RotateCcw, HelpCircle, Loader2 } from "lucide-react";
 
 interface AIAnomalyCenterProps {

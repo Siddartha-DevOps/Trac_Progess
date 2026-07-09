@@ -1,6 +1,6 @@
 import React from "react";
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { BIMElement, Anomaly, ProjectStats } from "../types";
+import { BIMElement, Anomaly, ProjectStats } from "./types";
 import { Play, Pause, Calendar, Building, ShieldCheck, AlertCircle, TrendingUp, IndianRupee } from "lucide-react";
 
 interface DashboardMetricsProps {

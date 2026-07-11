@@ -1,0 +1,548 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Organization {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  reraLicense   String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Supporting soft delete
+
+  users         User[]
+  auditLogs     AuditLog[]
+  projects      Project[]
+
+  @@index([slug])
+  @@index([deletedAt])
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phoneNumber     String?
+  avatarUrl       String?
+  isActive        Boolean        @default(true)
+  role            String         @default("SiteEngineer") // e.g., "Admin", "SiteEngineer", "Auditor"
+  
+  // Verification states
+  isEmailVerified Boolean        @default(false)
+  emailVerifiedAt DateTime?
+  isPhoneVerified Boolean        @default(false)
+  phoneVerifiedAt DateTime?
+  verificationToken String?
+
+  // Preferences & Settings JSON block
+  preferences     Json?          // e.g., { "theme": "light", "notifications": { "email": true } }
+
+  // Recovery & Invite flows
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  invitationToken      String?
+  invitationExpires    DateTime?
+  invitationAccepted   Boolean        @default(false)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  auditLogs       AuditLog[]
+
+  roleId          String?
+  roleRef         Role?          @relation(fields: [roleId], references: [id])
+
+  projectMembers  ProjectMember[]
+  uploadedFiles   ProjectFile[]
+  uploadedVideos  Video[]
+
+  @@index([email])
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@index([verificationToken])
+  @@index([passwordResetToken])
+  @@index([invitationToken])
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique // e.g., "Admin", "SiteEngineer", "Auditor"
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@index([name])
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique // e.g., "users:create", "anomalies:view"
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  roles       RolePermission[]
+
+  @@index([name])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  action      String    // INSERT | UPDATE | DELETE | RESTORE
+  tableName   String    // target table name (e.g., "Organization")
+  recordId    String    // GUID of the altered record
+  oldValues   Json?     // Snapshot state BEFORE edit
+  newValues   Json?     // Snapshot state AFTER edit
+  createdAt   DateTime  @default(now())
+
+  userId      String?   // Nullable for system actions
+  user        User?     @relation(fields: [userId], references: [id])
+  organizationId String?
+
+  @@index([tableName, recordId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Project {
+  id             String             @id @default(uuid())
+  name           String
+  description    String?
+  status         String             @default("PLANNING") // e.g., "PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"
+  startDate      DateTime?
+  endDate        DateTime?
+  budget         Float              @default(0.0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?          // For soft-delete
+
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  members        ProjectMember[]
+  files          ProjectFile[]
+  milestones     ProjectMilestone[]
+  buildings      Building[]
+  bimModels      BimModel[]
+  videos         Video[]
+  videoUploadSessions VideoUploadSession[]
+  aiJobs         AiJob[]
+  progressRecords ProgressRecord[]
+  progressSnapshots ProgressSnapshot[]
+  reports        Report[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  role      String   @default("MEMBER") // e.g., "OWNER", "MANAGER", "MEMBER", "VIEWER"
+  joinedAt  DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectFile {
+  id           String   @id @default(uuid())
+  name         String
+  url          String
+  size         Int
+  mimeType     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([uploadedById])
+}
+
+model ProjectMilestone {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  status      String    @default("PENDING") // e.g., "PENDING", "COMPLETED", "OVERDUE", "ON_HOLD"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model Building {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  type           String    @default("RESIDENTIAL") // e.g., "RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "OTHER"
+  status         String    @default("PLANNING") // e.g., "PLANNING", "UNDER_CONSTRUCTION", "COMPLETED", "COMMISSIONED"
+  
+  // Metadata
+  floors         Int       @default(1)
+  basementFloors Int       @default(0)
+  totalArea      Float     @default(0.0) // sqft or sqm
+  parkingSpaces  Int       @default(0)
+  metadata       Json?     // Extensible metadata block
+
+  // Location
+  address        String?
+  city           String?
+  state          String?
+  postalCode     String?
+
+  // GPS coordinates
+  latitude       Float?
+  longitude      Float?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime? // Support soft-delete
+
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  floorsList     Floor[]
+  progressRecords ProgressRecord[]
+  progressSnapshots ProgressSnapshot[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model Floor {
+  id             String    @id @default(uuid())
+  name           String
+  number         Int       // e.g., 1, 2, -1 for basement
+  order          Int       // for sorting/ordering sequence
+  description    String?
+  totalArea      Float     @default(0.0)
+  status         String    @default("PLANNING") // e.g., PLANNING, UNDER_CONSTRUCTION, COMPLETED
+  metadata       Json?     // extensible block
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime? // support soft-delete
+
+  buildingId     String
+  building       Building  @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  roomsList      Room[]
+  progressRecords ProgressRecord[]
+
+  @@index([buildingId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([order])
+}
+
+model Room {
+  id             String    @id @default(uuid())
+  name           String
+  category       String    @default("OFFICE") // e.g., OFFICE, CONFERENCE, LOBBY, RESTROOM, MECHANICAL, RESIDENTIAL
+  status         String    @default("PLANNING") // e.g., PLANNING, UNDER_CONSTRUCTION, COMPLETED, COMMISSIONED
+  description    String?
+  
+  // Room Geometry details
+  totalArea      Float     @default(0.0)      // Area of the room
+  height         Float     @default(0.0)      // Ceiling height of the room
+  perimeter      Float     @default(0.0)      // Perimeter of the room
+  geometry       Json?                        // Custom architectural shapes or polygon coordinates
+
+  metadata       Json?     // extensible metadata block
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime? // support soft-delete
+
+  floorId        String
+  floor          Floor     @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  progressRecords ProgressRecord[]
+
+  @@index([floorId])
+  @@index([status])
+  @@index([category])
+  @@index([deletedAt])
+}
+
+model BimModel {
+  id               String       @id @default(uuid())
+  name             String
+  description      String?
+  fileUrl          String
+  fileType         String       // e.g., "IFC", "RVT"
+  version          Int          @default(1)
+  status           String       @default("PROCESSING") // "PROCESSING", "COMPLETED", "FAILED"
+  coordinateSystem Json?        // e.g., { "origin": [0,0,0], "rotation": [0,0,0], "crs": "EPSG:3857" }
+  metadata         Json?        // File headers, software versions, authors, etc.
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?    // Support soft-delete
+
+  projectId        String
+  project          Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  elements         BimElement[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model BimElement {
+  id               String       @id @default(uuid())
+  externalId       String       // The original GUID from Revit / IFC (e.g. IfcGuid or UniqueID)
+  name             String
+  type             String       // e.g., "IFCWALLSTANDARDCASE", "IFCSLAB", "IFCCOLUMN"
+  category         String       // e.g., "Structural", "Architectural", "MEP"
+  geometry         Json?        // Bounding box, mesh vertices/normals, or simplified geometries
+  properties       Json?        // Extracted BIM element attributes/parameters
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  modelId          String
+  model            BimModel     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+  @@index([externalId])
+  @@index([type])
+  @@index([category])
+}
+
+model Video {
+  id                String    @id @default(uuid())
+  name              String
+  description       String?
+  fileUrl           String?
+  originalUrl       String?
+  compressedUrl     String?
+  thumbnailUrl      String?
+  fileSize          Int
+  mimeType          String
+  is360             Boolean   @default(false)
+  status            String    @default("UPLOADING") // UPLOADING, PROCESSING, COMPLETED, FAILED
+  compressionStatus String    @default("PENDING")   // PENDING, COMPRESSING, COMPLETED, FAILED
+  metadata          Json?     // resolution, duration, framerate, codec, etc.
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? // soft-delete
+
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  uploadedById      String?
+  uploadedBy        User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  aiJobs            AiJob[]
+
+  @@index([projectId])
+  @@index([uploadedById])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model VideoUploadSession {
+  id              String    @id @default(uuid())
+  uploadToken     String    @unique
+  fileName        String
+  fileSize        Int
+  chunkSize       Int
+  totalChunks     Int
+  uploadedChunks  Json      // array of uploaded chunk indices e.g. [0, 1, 2]
+  status          String    @default("INITIALIZED") // INITIALIZED, UPLOADING, MERGING, COMPLETED, FAILED
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([uploadToken])
+  @@index([projectId])
+}
+
+model AiJob {
+  id              String    @id @default(uuid())
+  jobType         String    // e.g. "FRAME_EXTRACTION", "YOLO_VERIFICATION", "ALIGNMENT_SANDBOX", "GEMINI_REMEDIATION"
+  status          String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, RETRYING
+  priority        Int       @default(0) // Higher priority first
+  videoId         String?
+  video           Video?    @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Job settings/arguments
+  payload         Json?     // input arguments for the task
+  result          Json?     // final task output results (e.g. detected items count, bounding boxes)
+  
+  // Retries & GPU Tracking
+  retryCount      Int       @default(0)
+  maxRetries      Int       @default(3)
+  gpuRequired     Boolean   @default(false)
+  gpuDeviceType   String?   // "T4", "L4", "A100" (NVIDIA GPU type used/requested)
+  gpuDeviceId     Int?      // GPU index assigned
+  gpuMemoryUsed   Int?      // memory usage in MB
+  
+  // Progress & Logs
+  progressPercent Int       @default(0)
+  errorMessage    String?
+  errorStack      String?
+  processingLogs  String[]  // execution log lines
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([jobType])
+}
+
+model ProgressRecord {
+  id                String    @id @default(uuid())
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  buildingId        String?
+  building          Building? @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floorId           String?
+  floor             Floor?    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  roomId            String?
+  room              Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  
+  trade             String    // e.g., "Structural", "MEP", "Finishes", "Exterior"
+  itemName          String    // e.g., "Structural Concrete", "Steel Reinforcement", "HVAC Ductwork"
+  
+  installedQuantity Float     @default(0.0)
+  totalQuantity     Float     @default(0.0)
+  unit              String    @default("m³") // e.g., m³, Tons, m, m²
+  unitWeight        Float     @default(1.0)  // Complexity/weight factor
+  
+  laborHoursPaid    Int       @default(0)
+  plannedDays       Int       @default(30)
+  
+  status            String    @default("PLANNING") // e.g., "PLANNING", "UNDER_CONSTRUCTION", "COMPLETED"
+  
+  recordedAt        DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([buildingId])
+  @@index([trade])
+  @@index([status])
+}
+
+model ProgressSnapshot {
+  id                String    @id @default(uuid())
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  buildingId        String?
+  building          Building? @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  
+  completedPercent  Float     @default(0.0)
+  plannedPercent    Float     @default(0.0)
+  laborHoursUsed    Int       @default(0)
+  paceWeeklyDelta   Float     @default(0.0)
+  
+  capturedAt        DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([buildingId])
+  @@index([capturedAt])
+}
+
+model Report {
+  id                String    @id @default(uuid())
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  name              String
+  type              String    // e.g., "DAILY", "WEEKLY", "MONTHLY", "PROGRESS", "DELAY", "EXECUTIVE"
+  format            String    // e.g., "PDF", "EXCEL", "JSON"
+  status            String    @default("PENDING") // e.g., "PENDING", "GENERATING", "READY", "FAILED"
+  
+  filePath          String?   // Simulation path or actual object storage URI
+  summary           String?   // AI generated executive text summary
+  reportData        Json      // Contains rich structural data for PDF/Excel reconstruction
+  
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. "PROGRESS_ALERT", "DELAY_WARNING", "REPORT_READY"
+  subject     String   // e.g. "Alert: Progress Delay on Project {{projectName}}"
+  body        String   // e.g. "Dear team, project {{projectName}} is currently lagging behind by {{delayPercent}}%..."
+  channels    String   // Comma-separated list: "EMAIL,SMS,PUSH,IN_APP"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NotificationLog {
+  id              String   @id @default(uuid())
+  projectId       String?
+  userId          String?  // Recipient User ID if known
+  recipient       String   // Email, Phone Number, or Client Push Token
+  channel         String   // "EMAIL" | "SMS" | "PUSH" | "IN_APP"
+  templateName    String?  // References NotificationTemplate.name if generated from template
+  subject         String?
+  body            String
+  status          String   @default("PENDING") // "PENDING", "SENT", "FAILED"
+  retryCount      Int      @default(0)
+  errorMessage    String?
+  metadata        Json?    // Context payload
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
+}
+
+
+
+
+

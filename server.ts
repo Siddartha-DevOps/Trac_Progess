@@ -124,6 +124,154 @@ The Live Gemini AI connection is currently using our offline backup engine. Belo
     }
   });
 
+  // --- DASHBOARD CORE API ENDPOINTS ---
+
+  // 1. GET Dashboard Organization Summary
+  app.get("/api/v1/dashboard/summary", (req, res) => {
+    res.json({
+      activeProjects: 4,
+      planningProjects: 2,
+      completedProjects: 1,
+      totalProjects: 7,
+      cumulativeBudget: 54000000,
+      averageProgress: 63.4,
+      projectSummaries: [
+        { id: "proj-blr-02", name: "Bangalore Tech Park Phase 2", status: "ACTIVE", completionRate: 58.2, milestoneCount: 12, memberCount: 8, health: "At Risk" },
+        { id: "proj-mum-01", name: "Mumbai Commercial Center", status: "ACTIVE", completionRate: 75.0, milestoneCount: 15, memberCount: 12, health: "On Track" },
+        { id: "proj-del-01", name: "Delhi Airport Terminal Expansion", status: "PLANNING", completionRate: 12.5, milestoneCount: 8, memberCount: 5, health: "On Track" },
+        { id: "proj-chn-01", name: "Chennai Smart Residential Block", status: "ACTIVE", completionRate: 42.1, milestoneCount: 10, memberCount: 7, health: "Critical Delay" }
+      ]
+    });
+  });
+
+  // 2. GET Project Health Telemetry & KPIs
+  app.get("/api/v1/dashboard/project-health/:projectId", (req, res) => {
+    const { projectId } = req.params;
+    
+    // Custom values for Bangalore
+    if (projectId === "proj-blr-02") {
+      res.json({
+        projectId: "proj-blr-02",
+        projectName: "Bangalore Tech Park Phase 2",
+        status: "ACTIVE",
+        overallHealth: "At Risk",
+        healthScore: 78,
+        budgetVariance: -1450000,
+        scheduleVarianceDays: -18,
+        activeAnomaliesCount: 3,
+        kpiMetrics: {
+          milestoneCompletionRate: 64.2,
+          budgetUtilizationPercent: 78.5,
+          weeklyProgressPace: 2.1,
+          aiDetectionPrecisionPercent: 94.6
+        }
+      });
+    } else {
+      res.json({
+        projectId: projectId || "proj-generic",
+        projectName: projectId === "proj-mum-01" ? "Mumbai Commercial Center" : "Generic Project Suite",
+        status: "ACTIVE",
+        overallHealth: "On Track",
+        healthScore: 92,
+        budgetVariance: 450000,
+        scheduleVarianceDays: 2,
+        activeAnomaliesCount: 0,
+        kpiMetrics: {
+          milestoneCompletionRate: 85.0,
+          budgetUtilizationPercent: 62.1,
+          weeklyProgressPace: 3.4,
+          aiDetectionPrecisionPercent: 97.2
+        }
+      });
+    }
+  });
+
+  // 3. GET Progress actual vs planned (S-Curve coords)
+  app.get("/api/v1/dashboard/progress/:projectId", (req, res) => {
+    res.json({
+      projectId: req.params.projectId || "proj-blr-02",
+      unit: "Percentage",
+      series: [
+        { week: "Week 1", actual: 10.0, planned: 12.0, variance: -2.0 },
+        { week: "Week 2", actual: 24.0, planned: 25.0, variance: -1.0 },
+        { week: "Week 3", actual: 38.0, planned: 40.0, variance: -2.0 },
+        { week: "Week 4", actual: 48.0, planned: 55.0, variance: -7.0 },
+        { week: "Week 5", actual: 58.2, planned: 72.0, variance: -13.8 }
+      ],
+      aggregateSummary: {
+        totalInstalledVolume: "5,800 m³",
+        totalPlannedVolume: "7,200 m³",
+        currentProgressVariance: "-13.8%",
+        remainingDaysEst: 45
+      }
+    });
+  });
+
+  // 4. GET Predictive schedule delays & bottlenecks
+  app.get("/api/v1/dashboard/delays/:projectId", (req, res) => {
+    res.json({
+      projectId: req.params.projectId || "proj-blr-02",
+      criticalPathStatus: "DELAY_RISK_DETECTED",
+      baselineEndDate: "2026-10-31",
+      predictedEndDate: "2026-11-18",
+      totalDelayVarianceDays: 18,
+      riskScore: 78,
+      bottlenecks: [
+        { trade: "Structural Concrete", riskFactor: "High", description: "Rebar spacing audit discrepancies on floor 3.", delayImpactDays: 12 },
+        { trade: "MEP Enclosures", riskFactor: "Medium", description: "Conduit spatial clash with steel joists on floor 4.", delayImpactDays: 6 },
+        { trade: "Interior Drywalls", riskFactor: "Low", description: "Procurement delivery lags in customized partition frames.", delayImpactDays: 4 }
+      ]
+    });
+  });
+
+  // 5. GET EVM metrics & labor productivity factors
+  app.get("/api/v1/dashboard/productivity/:projectId", (req, res) => {
+    res.json({
+      projectId: req.params.projectId || "proj-blr-02",
+      earnedValue: 5820000,
+      plannedValue: 7200000,
+      actualCost: 6100000,
+      schedulePerformanceIndex: 0.81,
+      costPerformanceIndex: 0.95,
+      laborPerformanceFactor: 0.88,
+      chartSeries: [
+        { week: "W1", cpi: 0.98, spi: 0.96 },
+        { week: "W2", cpi: 0.96, spi: 0.95 },
+        { week: "W3", cpi: 0.97, spi: 0.91 },
+        { week: "W4", cpi: 0.95, spi: 0.84 },
+        { week: "W5", cpi: 0.95, spi: 0.81 }
+      ]
+    });
+  });
+
+  // 6. GET Multi-disciplinary physical trades progress breakdown
+  app.get("/api/v1/dashboard/trades/:projectId", (req, res) => {
+    res.json({
+      projectId: req.params.projectId || "proj-blr-02",
+      trades: [
+        { trade: "Structural Concrete", installed: 1840, total: 2450, unit: "m³", percent: 75.1, status: "UNDER_CONSTRUCTION" },
+        { trade: "Steel Reinforcement", installed: 340, total: 450, unit: "Tons", percent: 75.5, status: "UNDER_CONSTRUCTION" },
+        { trade: "Masonry & Partitioning", installed: 1120, total: 2200, unit: "m²", percent: 50.9, status: "UNDER_CONSTRUCTION" },
+        { trade: "Electrical Conduits", installed: 4500, total: 8000, unit: "m", percent: 56.2, status: "UNDER_CONSTRUCTION" },
+        { trade: "HVAC Ductwork", installed: 120, total: 350, unit: "m", percent: 34.2, status: "DELAYED" },
+        { trade: "External Glazing", installed: 0, total: 1500, unit: "m²", percent: 0.0, status: "PLANNING" }
+      ]
+    });
+  });
+
+  // 7. GET Unified construction audit activity feed
+  app.get("/api/v1/dashboard/activities/:projectId", (req, res) => {
+    res.json({
+      projectId: req.params.projectId || "proj-blr-02",
+      activities: [
+        { id: "act-1", type: "AI_JOB", title: "AI Inspection: YOLO_VERIFICATION", description: "Completed. Photogrammetry orthomosaic 3D matching complete. Found 2 rebars missing on Floor 3.", timestamp: "2026-07-11T10:00:00Z", status: "COMPLETED" },
+        { id: "act-2", type: "NOTIFICATION", title: "Notification Dispatch: EMAIL", description: "Progress update triggered for Bangalore Tech Park. Delivered to sidduchitiki@gmail.com.", timestamp: "2026-07-11T09:30:00Z", status: "SENT" },
+        { id: "act-3", type: "REPORT", title: "Audit Document: Monthly Quality Audit", description: "PDF Compiled successfully with AI generated summaries.", timestamp: "2026-07-11T08:00:00Z", status: "READY" },
+        { id: "act-4", type: "NOTIFICATION", title: "Notification Dispatch: SMS", description: "Critical Delay Alert triggered. Delivered to +91 98765 43210.", timestamp: "2026-07-11T06:15:00Z", status: "SENT" }
+      ]
+    });
+  });
+
   // API Route: Simulated FastAPI Python Pipeline Log
   // Demonstrating photogrammetry processing logs
   app.get("/api/pipeline/logs", (req, res) => {
@@ -173,6 +321,293 @@ The Live Gemini AI connection is currently using our offline backup engine. Belo
       timestamp: new Date().toISOString(),
       activeStepIndex: currentStep,
       pipelineSteps: steps
+    });
+  });
+
+  // --- INTERACTIVE AUDIT STORE & ENDPOINTS ---
+
+  // In-memory mutable audit store to allow live additions, queries, and "Restore" events
+  let inMemoryAuditLogs = [
+    {
+      id: "aud-001",
+      action: "UPDATE",
+      tableName: "Project",
+      recordId: "proj-blr-02",
+      oldValues: { name: "Bangalore Tech Park", budget: 15000000, status: "PLANNING" },
+      newValues: { name: "Bangalore Tech Park Phase 2", budget: 18000000, status: "ACTIVE" },
+      createdAt: "2026-07-11T10:30:00.000Z",
+      userId: "usr-001",
+      userEmail: "sidduchitiki@gmail.com",
+      userName: "Siddharth Chitiki",
+      userRole: "Admin",
+      description: "Updated project baseline budget to ₹18,000,000 and status to ACTIVE."
+    },
+    {
+      id: "aud-002",
+      action: "INSERT",
+      tableName: "Building",
+      recordId: "bld-003",
+      oldValues: null,
+      newValues: { name: "Block C Research Wing", floors: 8, totalArea: 45000, projectId: "proj-blr-02" },
+      createdAt: "2026-07-11T09:15:00.000Z",
+      userId: "usr-002",
+      userEmail: "auditor@buildtrace.in",
+      userName: "Karan Sharma",
+      userRole: "Auditor",
+      description: "Registered Building Block C with 8 floors under Bangalore Tech Park."
+    },
+    {
+      id: "aud-003",
+      action: "DELETE",
+      tableName: "ProjectFile",
+      recordId: "file-099",
+      oldValues: { name: "obsolete-structural-layout-v1.pdf", url: "https://storage.buildtrace.in/v1.pdf", projectId: "proj-blr-02" },
+      newValues: null,
+      createdAt: "2026-07-11T08:00:00.000Z",
+      userId: "usr-001",
+      userEmail: "sidduchitiki@gmail.com",
+      userName: "Siddharth Chitiki",
+      userRole: "Admin",
+      description: "Permanently deleted obsolete structural layout file layout-v1.pdf."
+    },
+    {
+      id: "aud-004",
+      action: "RESTORE",
+      tableName: "Room",
+      recordId: "room-402",
+      oldValues: { status: "UNDER_CONSTRUCTION" },
+      newValues: { status: "COMPLETED" },
+      createdAt: "2026-07-10T16:45:00.000Z",
+      userId: "usr-003",
+      userEmail: "engineer@buildtrace.in",
+      userName: "Vikram Reddy",
+      userRole: "SiteEngineer",
+      description: "Reverted Room 402 physical state to COMPLETED after QA approval."
+    }
+  ];
+
+  // AI Pipeline audit logs
+  let inMemoryAiActivities = [
+    {
+      id: "job-001",
+      jobType: "YOLO_VERIFICATION",
+      status: "COMPLETED",
+      priority: 2,
+      videoId: "vid-404",
+      projectId: "proj-blr-02",
+      payload: { confidenceThreshold: 0.65 },
+      result: { detectedAnomalies: 3, verifiedElements: 42, matchAccuracyPercent: 94.6 },
+      retryCount: 0,
+      maxRetries: 3,
+      gpuRequired: true,
+      gpuDeviceType: "L4",
+      progressPercent: 100,
+      processingLogs: [
+        "GPU initialized. Fetching orthomosaic map source.",
+        "Model YOLOv8x running on PyTorch CUDA device 0.",
+        "Found rebar displacement on floor 3 Grid Line C.",
+        "Verification complete. Saved 3 active anomalies."
+      ],
+      createdAt: "2026-07-11T10:00:00.000Z",
+      completedAt: "2026-07-11T10:05:00.000Z"
+    },
+    {
+      id: "job-002",
+      jobType: "FRAME_EXTRACTION",
+      status: "COMPLETED",
+      priority: 1,
+      videoId: "vid-440",
+      projectId: "proj-blr-02",
+      payload: { sampleRateSeconds: 1 },
+      result: { framesExtracted: 180 },
+      retryCount: 0,
+      maxRetries: 3,
+      gpuRequired: false,
+      progressPercent: 100,
+      processingLogs: ["Parsing MP4 metadata...", "Demuxing video tracks...", "Wrote 180 frames to disk"],
+      createdAt: "2026-07-11T09:45:00.000Z",
+      completedAt: "2026-07-11T09:46:12.000Z"
+    },
+    {
+      id: "job-003",
+      jobType: "GEMINI_REMEDIATION",
+      status: "FAILED",
+      priority: 0,
+      videoId: null,
+      projectId: "proj-blr-02",
+      payload: { anomalyId: "anom-901" },
+      result: null,
+      retryCount: 1,
+      maxRetries: 3,
+      gpuRequired: false,
+      progressPercent: 30,
+      errorMessage: "Gemini API call timed out after 30 seconds.",
+      processingLogs: [
+        "Compiling structural metadata for anomaly context.",
+        "Connecting to Gemini 1.5 Pro inference backend.",
+        "Network connection interrupted. Retrying...",
+        "Retry failed."
+      ],
+      createdAt: "2026-07-11T08:10:00.000Z",
+      completedAt: "2026-07-11T08:12:00.000Z"
+    }
+  ];
+
+  // Report compile trails
+  let inMemoryReportActivities = [
+    {
+      id: "rep-001",
+      projectId: "proj-blr-02",
+      name: "Weekly Construction Quality Audit",
+      type: "WEEKLY",
+      format: "PDF",
+      status: "READY",
+      filePath: "https://storage.buildtrace.in/reports/Weekly-Quality-Audit.pdf",
+      summary: "Concrete rebar density is within 95% threshold of BIM spec. Small deviation flagged on Block C Grid Line E.",
+      reportData: { scannedRebarCount: 120, deviationsFound: 1 },
+      createdAt: "2026-07-11T08:00:00.000Z"
+    },
+    {
+      id: "rep-002",
+      projectId: "proj-blr-02",
+      name: "Executive S-Curve Slippage Risk Report",
+      type: "EXECUTIVE",
+      format: "JSON",
+      status: "READY",
+      filePath: "https://storage.buildtrace.in/reports/Slippage-Risk.json",
+      summary: "Predicted schedule drift increased to 18 days due to layout deviations in upper slab.",
+      reportData: { driftDays: 18, riskFactor: "High" },
+      createdAt: "2026-07-10T14:30:00.000Z"
+    }
+  ];
+
+  // User activities
+  let inMemoryUserActivities = [
+    {
+      id: "uact-01",
+      action: "UPDATE",
+      tableName: "User",
+      recordId: "usr-002",
+      oldValues: { isActive: false },
+      newValues: { isActive: true },
+      createdAt: "2026-07-11T11:05:00.000Z",
+      userId: "usr-001",
+      userEmail: "sidduchitiki@gmail.com",
+      userName: "Siddharth Chitiki",
+      userRole: "Admin",
+      description: "Activated user account Karan Sharma (auditor@buildtrace.in)."
+    },
+    {
+      id: "uact-02",
+      action: "INSERT",
+      tableName: "User",
+      recordId: "usr-005",
+      oldValues: null,
+      newValues: { email: "new-engineer@buildtrace.in", firstName: "Abhinav", lastName: "Sinha", role: "SiteEngineer" },
+      createdAt: "2026-07-10T14:20:00.000Z",
+      userId: "usr-001",
+      userEmail: "sidduchitiki@gmail.com",
+      userName: "Siddharth Chitiki",
+      userRole: "Admin",
+      description: "Invited new Site Engineer Abhinav Sinha."
+    }
+  ];
+
+  // 1. GET Core Paginated Audit Logs
+  app.get("/api/v1/audit/logs", (req, res) => {
+    res.json({
+      items: inMemoryAuditLogs,
+      total: inMemoryAuditLogs.length
+    });
+  });
+
+  // 2. GET Specific Audit Log
+  app.get("/api/v1/audit/logs/:id", (req, res) => {
+    const log = inMemoryAuditLogs.find(l => l.id === req.params.id);
+    if (!log) {
+      return res.status(404).json({ error: "Audit log not found" });
+    }
+    res.json(log);
+  });
+
+  // 3. GET User Activities
+  app.get("/api/v1/audit/users", (req, res) => {
+    res.json({
+      items: inMemoryUserActivities,
+      total: inMemoryUserActivities.length
+    });
+  });
+
+  // 4. GET Project Activities
+  app.get("/api/v1/audit/projects/:projectId", (req, res) => {
+    const filtered = inMemoryAuditLogs.filter(l => l.recordId === req.params.projectId || l.tableName !== "User");
+    res.json({
+      items: filtered,
+      total: filtered.length
+    });
+  });
+
+  // 5. GET AI Activities
+  app.get("/api/v1/audit/ai", (req, res) => {
+    res.json({
+      items: inMemoryAiActivities,
+      total: inMemoryAiActivities.length
+    });
+  });
+
+  // 6. GET Report Activities
+  app.get("/api/v1/audit/reports", (req, res) => {
+    res.json({
+      items: inMemoryReportActivities,
+      total: inMemoryReportActivities.length
+    });
+  });
+
+  // 7. GET Change History for specific record
+  app.get("/api/v1/audit/history/:tableName/:recordId", (req, res) => {
+    const filtered = inMemoryAuditLogs.filter(
+      l => l.tableName.toLowerCase() === req.params.tableName.toLowerCase() && l.recordId === req.params.recordId
+    );
+    res.json(filtered);
+  });
+
+  // 8. POST Restore State
+  app.post("/api/v1/audit/restore/:id", (req, res) => {
+    const log = inMemoryAuditLogs.find(l => l.id === req.params.id);
+    if (!log) {
+      return res.status(404).json({ error: "Audit log not found" });
+    }
+
+    const targetState = log.oldValues || log.newValues;
+    if (!targetState) {
+      return res.status(400).json({ error: "Audit log does not contain restorable JSON snapshot." });
+    }
+
+    // Create a new RESTORE audit entry
+    const restoreEntry = {
+      id: `aud-restore-${Math.floor(Math.random() * 1000)}`,
+      action: "RESTORE",
+      tableName: log.tableName,
+      recordId: log.recordId,
+      oldValues: log.newValues || null,
+      newValues: targetState,
+      createdAt: new Date().toISOString(),
+      userId: "usr-001",
+      userEmail: "sidduchitiki@gmail.com",
+      userName: "Siddharth Chitiki",
+      userRole: "Admin",
+      description: `Reverted table ${log.tableName} [ID: ${log.recordId}] to previous revision point via audit recovery panel.`
+    };
+
+    // Prepend to current audit logs
+    inMemoryAuditLogs.unshift(restoreEntry);
+
+    res.json({
+      success: true,
+      message: `Database record in table '${log.tableName}' successfully reverted to prior revision point.`,
+      restoredRecordId: log.recordId,
+      restoredTable: log.tableName,
+      data: targetState
     });
   });
 

@@ -28,6 +28,14 @@ export interface IBIMViewerEngine {
   getElements(): BIMElementMetadata[];
   getEngineName(): string;
   zoomToElement(elementId: string): void;
+  
+  // New interactive UI controls
+  zoom(direction: "in" | "out"): void;
+  resetCamera(): void;
+  toggleElementVisibility(elementId: string, visible: boolean): void;
+  showAllElements(): void;
+  setMeasurementMode(active: boolean, onMeasure?: (distance: number | null, p1?: [number, number, number], p2?: [number, number, number]) => void): void;
+  clearMeasurements(): void;
 }
 
 // Standard parsed IFC file metadata simulator/parser helper

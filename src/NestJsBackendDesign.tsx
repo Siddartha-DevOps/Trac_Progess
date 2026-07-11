@@ -28,7 +28,8 @@ import {
   Search,
   ExternalLink,
   GitBranch,
-  Grid
+  Grid,
+  Activity
 } from "lucide-react";
 
 interface FileNode {
@@ -295,23 +296,270 @@ export class BuildingsService {
                 type: "folder",
                 children: [
                   {
+                    name: "floors.module.ts",
+                    type: "file",
+                    description: "Declares controller, service, repository, and registers Prisma/Audit providers.",
+                    code: `import { Module } from '@nestjs/common';
+import { FloorsController } from './floors.controller';
+import { FloorsService } from './floors.service';
+import { FloorsRepository } from './floors.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [FloorsController],
+  providers: [
+    FloorsService,
+    FloorsRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [FloorsService, FloorsRepository],
+})
+export class FloorsModule {}`
+                  },
+                  {
+                    name: "floors.controller.ts",
+                    type: "file",
+                    description: "Exposes REST endpoints with permissions, DTO validation, and Swagger documentation.",
+                    code: `import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
+import { FloorsService } from './floors.service';
+import { CreateFloorDto } from './dto/create-floor.dto';
+import { UpdateFloorDto } from './dto/update-floor.dto';
+import { QueryFloorDto } from './dto/query-floor.dto';
+import { FloorResponseDto, PaginatedFloorResponseDto } from './dto/floor-response.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+import { PermissionsGuard } from '../../common/auth/permissions.guard';
+import { Permissions } from '../../common/auth/permissions.decorator';
+
+@ApiTags('Floors Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionsGuard)
+@Controller('floors')
+export class FloorsController {
+  constructor(private readonly service: FloorsService) {}
+
+  @Post()
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Create a new floor level' })
+  @ApiResponse({ status: HttpStatus.CREATED, type: FloorResponseDto })
+  async create(@Body() createDto: CreateFloorDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.createFloor(createDto, userId);
+  }
+
+  @Get()
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'Find and filter floor levels' })
+  @ApiResponse({ status: HttpStatus.OK, type: PaginatedFloorResponseDto })
+  async findAll(@Query() query: QueryFloorDto) {
+    return this.service.findAllFloors(query);
+  }
+
+  @Post('reorder')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Re-order vertical floor lists' })
+  async reorder(@Body('orderedIds') orderedIds: string[], @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.reorderFloors(orderedIds, userId);
+  }
+
+  @Get(':id')
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'Find single floor by ID' })
+  @ApiResponse({ status: HttpStatus.OK, type: FloorResponseDto })
+  async findOne(@Param('id') id: string) {
+    return this.service.findFloorById(id);
+  }
+
+  @Patch(':id')
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Update floor attributes' })
+  @ApiResponse({ status: HttpStatus.OK, type: FloorResponseDto })
+  async update(@Param('id') id: string, @Body() updateDto: UpdateFloorDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.updateFloor(id, updateDto, userId);
+  }
+
+  @Delete(':id')
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Soft-delete a floor level' })
+  @ApiResponse({ status: HttpStatus.OK, type: FloorResponseDto })
+  async remove(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.softDeleteFloor(id, userId);
+  }
+
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Restore a soft-deleted floor level' })
+  @ApiResponse({ status: HttpStatus.OK, type: FloorResponseDto })
+  async restore(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.restoreFloor(id, userId);
+  }
+}`
+                  },
+                  {
                     name: "floors.service.ts",
                     type: "file",
-                    description: "Computes physical levels offset and concrete pouring tracking maps.",
-                    code: `import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Floor } from './entities/floor.entity';
+                    description: "Coordinates business logic, checks unique constraints, and writes transaction audit logs.",
+                    code: `import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { FloorsRepository } from './floors.repository';
+import { CreateFloorDto } from './dto/create-floor.dto';
+import { UpdateFloorDto } from './dto/update-floor.dto';
+import { QueryFloorDto } from './dto/query-floor.dto';
+import { AuditService } from '../../common/audit/audit.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class FloorsService {
   constructor(
-    @InjectRepository(Floor)
-    private readonly floorRepo: Repository<Floor>
+    private readonly repo: FloorsRepository,
+    private readonly audit: AuditService,
+    private readonly prisma: PrismaService,
   ) {}
 
-  async findByBuilding(buildingId: string): Promise<Floor[]> {
-    return this.floorRepo.find({ where: { buildingId }, order: { level: 'ASC' } });
+  async createFloor(createDto: CreateFloorDto, userId?: string) {
+    const building = await this.prisma.building.findUnique({ where: { id: createDto.buildingId } });
+    if (!building) throw new NotFoundException('Building not found');
+
+    const existingLevel = await this.repo.findFloorByLevelNumberAndBuilding(createDto.number, createDto.buildingId);
+    if (existingLevel) throw new ConflictException('Floor level already exists');
+
+    const existingName = await this.repo.findFloorByNameAndBuilding(createDto.name, createDto.buildingId);
+    if (existingName) throw new ConflictException('Floor name already exists');
+
+    const floor = await this.repo.createFloor(createDto);
+    const project = await this.prisma.project.findUnique({ where: { id: building.projectId } });
+
+    await this.audit.log({
+      action: 'INSERT',
+      tableName: 'Floor',
+      recordId: floor.id,
+      newValues: floor,
+      userId,
+      organizationId: project?.organizationId,
+    });
+    return floor;
+  }
+
+  async updateFloor(id: string, updateDto: UpdateFloorDto, userId?: string) {
+    const floor = await this.repo.findFloorById(id);
+    if (!floor) throw new NotFoundException('Floor not found');
+
+    if (updateDto.name && updateDto.name.trim().toLowerCase() !== floor.name.toLowerCase()) {
+      const existing = await this.repo.findFloorByNameAndBuilding(updateDto.name, floor.buildingId);
+      if (existing && existing.id !== id) throw new ConflictException('Floor name already exists');
+    }
+
+    const updated = await this.repo.updateFloor(id, updateDto);
+    await this.audit.log({
+      action: 'UPDATE',
+      tableName: 'Floor',
+      recordId: id,
+      newValues: updated,
+      userId,
+      organizationId: floor.building?.project?.organizationId,
+    });
+    return updated;
+  }
+
+  async findFloorById(id: string) {
+    const floor = await this.repo.findFloorById(id);
+    if (!floor) throw new NotFoundException('Floor not found');
+    return floor;
+  }
+
+  async findAllFloors(query: QueryFloorDto) {
+    return this.repo.findAllFloors(query);
+  }
+
+  async softDeleteFloor(id: string, userId?: string) {
+    const floor = await this.repo.findFloorById(id);
+    if (!floor) throw new NotFoundException('Floor not found');
+    const deleted = await this.repo.softDeleteFloor(id);
+    await this.audit.log({
+      action: 'DELETE',
+      tableName: 'Floor',
+      recordId: id,
+      newValues: deleted,
+      userId,
+      organizationId: floor.building?.project?.organizationId,
+    });
+    return deleted;
+  }
+
+  async reorderFloors(orderedIds: string[], userId?: string) {
+    const result = await this.repo.updateFloorsOrder(orderedIds);
+    return result;
+  }
+}`
+                  },
+                  {
+                    name: "floors.repository.ts",
+                    type: "file",
+                    description: "Interacts directly with Prisma Client to handle DB operations, paging, and soft deletes.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateFloorDto } from './dto/create-floor.dto';
+import { UpdateFloorDto } from './dto/update-floor.dto';
+import { QueryFloorDto } from './dto/query-floor.dto';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class FloorsRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createFloor(createDto: CreateFloorDto) {
+    return this.prisma.floor.create({
+      data: {
+        name: createDto.name.trim(),
+        description: createDto.description,
+        number: createDto.number,
+        order: createDto.order,
+        totalArea: createDto.totalArea || 0,
+        buildingId: createDto.buildingId,
+      }
+    });
+  }
+
+  async findFloorById(id: string, includeDeleted = false) {
+    return this.prisma.floor.findFirst({
+      where: { id, deletedAt: includeDeleted ? undefined : null },
+      include: { building: { include: { project: true } } }
+    });
+  }
+
+  async findFloorByLevelNumberAndBuilding(number: number, buildingId: string) {
+    return this.prisma.floor.findFirst({ where: { number, buildingId, deletedAt: null } });
+  }
+
+  async findFloorByNameAndBuilding(name: string, buildingId: string) {
+    return this.prisma.floor.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' }, buildingId, deletedAt: null }
+    });
+  }
+
+  async findAllFloors(query: QueryFloorDto) {
+    const { buildingId, status, search, page = 1, limit = 10 } = query;
+    const where: Prisma.FloorWhereInput = { deletedAt: null };
+    if (buildingId) where.buildingId = buildingId;
+    if (status) where.status = status;
+    const [items, totalItems] = await Promise.all([
+      this.prisma.floor.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { order: 'asc' } }),
+      this.prisma.floor.count({ where })
+    ]);
+    return { items, totalItems };
+  }
+
+  async updateFloorsOrder(orderedIds: string[]) {
+    return this.prisma.$transaction(
+      orderedIds.map((id, index) => this.prisma.floor.update({ where: { id }, data: { order: index } }))
+    );
   }
 }`
                   }
@@ -322,23 +570,757 @@ export class FloorsService {
                 type: "folder",
                 children: [
                   {
+                    name: "rooms.module.ts",
+                    type: "file",
+                    description: "Declares controller, service, repository, and registers Prisma/Audit providers.",
+                    code: `import { Module } from '@nestjs/common';
+import { RoomsController } from './rooms.controller';
+import { RoomsService } from './rooms.service';
+import { RoomsRepository } from './rooms.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [RoomsController],
+  providers: [
+    RoomsService,
+    RoomsRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [RoomsService, RoomsRepository],
+})
+export class RoomsModule {}`
+                  },
+                  {
+                    name: "rooms.controller.ts",
+                    type: "file",
+                    description: "Exposes CRUD REST endpoints with authentication, permissions, DTO validation, and Swagger documentation.",
+                    code: `import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import { RoomsService } from './rooms.service';
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
+import { QueryRoomDto } from './dto/query-room.dto';
+import { RoomResponseDto, PaginatedRoomResponseDto } from './dto/room-response.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+import { PermissionsGuard } from '../../common/auth/permissions.guard';
+import { Permissions } from '../../common/auth/permissions.decorator';
+
+@ApiTags('Rooms Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionsGuard)
+@Controller('rooms')
+export class RoomsController {
+  constructor(private readonly service: RoomsService) {}
+
+  @Post()
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Create a new room' })
+  @ApiResponse({ status: HttpStatus.CREATED, type: RoomResponseDto })
+  async create(@Body() createDto: CreateRoomDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.createRoom(createDto, userId);
+  }
+
+  @Get()
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'Find and filter rooms' })
+  @ApiResponse({ status: HttpStatus.OK, type: PaginatedRoomResponseDto })
+  async findAll(@Query() query: QueryRoomDto) {
+    return this.service.findAllRooms(query);
+  }
+
+  @Get(':id')
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'Find single room by ID' })
+  @ApiResponse({ status: HttpStatus.OK, type: RoomResponseDto })
+  async findOne(@Param('id') id: string) {
+    return this.service.findRoomById(id);
+  }
+
+  @Patch(':id')
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Update room attributes' })
+  @ApiResponse({ status: HttpStatus.OK, type: RoomResponseDto })
+  async update(@Param('id') id: string, @Body() updateDto: UpdateRoomDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.updateRoom(id, updateDto, userId);
+  }
+
+  @Delete(':id')
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Soft-delete a room' })
+  @ApiResponse({ status: HttpStatus.OK, type: RoomResponseDto })
+  async remove(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.softDeleteRoom(id, userId);
+  }
+
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Restore a soft-deleted room' })
+  @ApiResponse({ status: HttpStatus.OK, type: RoomResponseDto })
+  async restore(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.restoreRoom(id, userId);
+  }
+}`
+                  },
+                  {
                     name: "rooms.service.ts",
                     type: "file",
-                    description: "Handles physical coordinates partition for datacenter clusters and structural cores.",
-                    code: `import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Room } from './entities/room.entity';
+                    description: "Coordinates room business logic, unique designations on floors, geometry checks, and transaction audit logs.",
+                    code: `import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { RoomsRepository } from './rooms.repository';
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
+import { QueryRoomDto } from './dto/query-room.dto';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
 
 @Injectable()
 export class RoomsService {
   constructor(
-    @InjectRepository(Room)
-    private readonly roomRepo: Repository<Room>
+    private readonly repo: RoomsRepository,
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
   ) {}
 
-  async getZoneDetails(roomId: string): Promise<Room> {
-    return this.roomRepo.findOne({ where: { id: roomId } });
+  async createRoom(createDto: CreateRoomDto, userId?: string) {
+    const floor = await this.prisma.floor.findUnique({
+      where: { id: createDto.floorId, deletedAt: null },
+      include: { building: { select: { projectId: true, project: { select: { organizationId: true } } } } }
+    });
+    if (!floor) throw new NotFoundException('Floor level not found');
+
+    const existingRoom = await this.repo.findRoomByNameAndFloor(createDto.name, createDto.floorId);
+    if (existingRoom) throw new ConflictException('Room name already exists on this floor');
+
+    const room = await this.repo.createRoom(createDto);
+    await this.audit.log({
+      action: 'INSERT',
+      tableName: 'Room',
+      recordId: room.id,
+      newValues: room,
+      userId,
+      organizationId: floor.building?.project?.organizationId,
+    });
+    return room;
+  }
+
+  async updateRoom(id: string, updateDto: UpdateRoomDto, userId?: string) {
+    const existingRoom = await this.repo.findRoomById(id);
+    if (!existingRoom) throw new NotFoundException('Room not found');
+
+    if (updateDto.name && updateDto.name.trim().toLowerCase() !== existingRoom.name.toLowerCase()) {
+      const duplicate = await this.repo.findRoomByNameAndFloor(updateDto.name, existingRoom.floorId);
+      if (duplicate && duplicate.id !== id) throw new ConflictException('Room name already exists on this floor');
+    }
+
+    const updated = await this.repo.updateRoom(id, updateDto);
+    await this.audit.log({
+      action: 'UPDATE',
+      tableName: 'Room',
+      recordId: id,
+      newValues: updated,
+      userId,
+      organizationId: existingRoom.floor?.building?.project?.organizationId,
+    });
+    return updated;
+  }
+
+  async findRoomById(id: string) {
+    const room = await this.repo.findRoomById(id);
+    if (!room) throw new NotFoundException('Room not found');
+    return room;
+  }
+
+  async findAllRooms(query: QueryRoomDto) {
+    return this.repo.findAllRooms(query);
+  }
+
+  async softDeleteRoom(id: string, userId?: string) {
+    const room = await this.repo.findRoomById(id);
+    if (!room) throw new NotFoundException('Room not found');
+    const deleted = await this.repo.softDeleteRoom(id);
+    await this.audit.log({
+      action: 'DELETE',
+      tableName: 'Room',
+      recordId: id,
+      newValues: deleted,
+      userId,
+      organizationId: room.floor?.building?.project?.organizationId,
+    });
+    return deleted;
+  }
+}`
+                  },
+                  {
+                    name: "rooms.repository.ts",
+                    type: "file",
+                    description: "Interacts directly with Prisma Client to handle DB operations, paging, soft deletes, and geometries.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
+import { QueryRoomDto } from './dto/query-room.dto';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class RoomsRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createRoom(createDto: CreateRoomDto) {
+    return this.prisma.room.create({
+      data: {
+        name: createDto.name.trim(),
+        category: createDto.category || 'OFFICE',
+        status: createDto.status || 'PLANNING',
+        description: createDto.description,
+        totalArea: createDto.totalArea || 0.0,
+        height: createDto.height || 0.0,
+        perimeter: createDto.perimeter || 0.0,
+        geometry: createDto.geometry || Prisma.JsonNull,
+        metadata: createDto.metadata || Prisma.JsonNull,
+        floorId: createDto.floorId,
+      }
+    });
+  }
+
+  async findRoomById(id: string, includeDeleted = false) {
+    return this.prisma.room.findFirst({
+      where: { id, deletedAt: includeDeleted ? undefined : null },
+      include: { floor: { include: { building: { include: { project: true } } } } }
+    });
+  }
+
+  async findRoomByNameAndFloor(name: string, floorId: string) {
+    return this.prisma.room.findFirst({
+      where: { name: { equals: name.trim(), mode: 'insensitive' }, floorId, deletedAt: null }
+    });
+  }
+
+  async findAllRooms(query: QueryRoomDto) {
+    const { floorId, status, category, search, page = 1, limit = 10 } = query;
+    const where: Prisma.RoomWhereInput = { deletedAt: null };
+    if (floorId) where.floorId = floorId;
+    if (status) where.status = status;
+    if (category) where.category = category;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+    const [items, totalItems] = await Promise.all([
+      this.prisma.room.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { name: 'asc' } }),
+      this.prisma.room.count({ where })
+    ]);
+    return { items, totalItems };
+  }
+
+  async softDeleteRoom(id: string) {
+    return this.prisma.room.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  async restoreRoom(id: string) {
+    return this.prisma.room.update({ where: { id }, data: { deletedAt: null } });
+  }
+}`
+                  }
+                ]
+              },
+              {
+                name: "bim",
+                type: "folder",
+                children: [
+                  {
+                    name: "bim.module.ts",
+                    type: "file",
+                    description: "Registers BIMController, BIMService, and BIMRepository for dependency injection.",
+                    code: `import { Module } from '@nestjs/common';
+import { BimController } from './bim.controller';
+import { BimService } from './bim.service';
+import { BimRepository } from './bim.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [BimController],
+  providers: [
+    BimService,
+    BimRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [BimService, BimRepository],
+})
+export class BimModule {}`
+                  },
+                  {
+                    name: "bim.controller.ts",
+                    type: "file",
+                    description: "Defines REST endpoints for uploading IFC/Revit models, aligning coordinate systems, and comparing versions.",
+                    code: `import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { BimService } from './bim.service';
+import { CreateBimModelDto } from './dto/create-bim-model.dto';
+import { UpdateBimModelDto } from './dto/update-bim-model.dto';
+import { QueryBimModelDto } from './dto/query-bim-model.dto';
+import { CompareBimModelsDto } from './dto/compare-bim-models.dto';
+import { BimModelResponseDto, PaginatedBimModelResponseDto } from './dto/bim-response.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+import { PermissionsGuard } from '../../common/auth/permissions.guard';
+import { Permissions } from '../../common/auth/permissions.decorator';
+
+@ApiTags('BIM Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionsGuard)
+@Controller('bim')
+export class BimController {
+  constructor(private readonly service: BimService) {}
+
+  @Post()
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Upload and parse a new BIM model (IFC or Revit)' })
+  @ApiResponse({ status: HttpStatus.CREATED, type: BimModelResponseDto })
+  async create(@Body() createDto: CreateBimModelDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.createModel(createDto, userId);
+  }
+
+  @Get()
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'List and filter BIM models' })
+  @ApiResponse({ status: HttpStatus.OK, type: PaginatedBimModelResponseDto })
+  async findAll(@Query() query: QueryBimModelDto) {
+    return this.service.findAllModels(query);
+  }
+
+  @Post('compare')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'Compare two BIM model versions for structural changes' })
+  async compare(@Body() compareDto: CompareBimModelsDto) {
+    return this.service.compareModels(compareDto);
+  }
+
+  @Get(':id')
+  @Permissions('building.read')
+  @ApiOperation({ summary: 'Retrieve details and elements of a single BIM model' })
+  @ApiResponse({ status: HttpStatus.OK, type: BimModelResponseDto })
+  async findOne(@Param('id') id: string) {
+    return this.service.findModelById(id);
+  }
+
+  @Patch(':id')
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Update model description, status, metadata, or coordinates' })
+  @ApiResponse({ status: HttpStatus.OK, type: BimModelResponseDto })
+  async update(@Param('id') id: string, @Body() updateDto: UpdateBimModelDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.updateModel(id, updateDto, userId);
+  }
+
+  @Delete(':id')
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Soft-delete a BIM model' })
+  @ApiResponse({ status: HttpStatus.OK, type: BimModelResponseDto })
+  async remove(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.softDeleteModel(id, userId);
+  }
+
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Restore a soft-deleted BIM model' })
+  @ApiResponse({ status: HttpStatus.OK, type: BimModelResponseDto })
+  async restore(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.service.restoreModel(id, userId);
+  }
+
+  @Post(':id/align')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('building.update')
+  @ApiOperation({ summary: 'Align model coordinate system to drone real-world bounds' })
+  @ApiResponse({ status: HttpStatus.OK, type: BimModelResponseDto })
+  async alignCoordinates(
+    @Param('id') id: string,
+    @Body() alignDto: { coordinateSystem: Record<string, any> },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id;
+    return this.service.alignCoordinates(id, alignDto.coordinateSystem, userId);
+  }
+}`
+                  },
+                  {
+                    name: "bim.service.ts",
+                    type: "file",
+                    description: "Implements file parsing format validations, automated version numbering, coordinate alignments, and element comparison.",
+                    code: `import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BimRepository } from './bim.repository';
+import { CreateBimModelDto } from './dto/create-bim-model.dto';
+import { UpdateBimModelDto } from './dto/update-bim-model.dto';
+import { QueryBimModelDto } from './dto/query-bim-model.dto';
+import { CompareBimModelsDto } from './dto/compare-bim-models.dto';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Injectable()
+export class BimService {
+  constructor(
+    private readonly repo: BimRepository,
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
+
+  async createModel(createDto: CreateBimModelDto, userId?: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: createDto.projectId, deletedAt: null },
+    });
+    if (!project) throw new NotFoundException('Project not found or deleted.');
+
+    const extension = createDto.fileUrl.split('.').pop()?.toLowerCase();
+    const typeUpper = createDto.fileType.toUpperCase();
+    if (typeUpper === 'IFC' && extension !== 'ifc') {
+      throw new BadRequestException('IFC models require a .ifc file extension.');
+    }
+    if (typeUpper === 'RVT' && extension !== 'rvt') {
+      throw new BadRequestException('Revit models require a .rvt file extension.');
+    }
+
+    const latestModel = await this.repo.findLatestVersion(createDto.projectId, createDto.name);
+    const versionNumber = latestModel ? latestModel.version + 1 : 1;
+
+    const model = await this.repo.createModel(createDto, versionNumber);
+
+    await this.audit.log({
+      action: 'INSERT',
+      tableName: 'BimModel',
+      recordId: model.id,
+      newValues: model,
+      userId,
+      organizationId: project.organizationId,
+    });
+
+    const mockExtractedElements = this.simulateElementExtraction(model.id, model.fileType);
+    await this.repo.createElements(model.id, mockExtractedElements);
+
+    const updatedModel = await this.repo.updateModel(model.id, {
+      status: 'COMPLETED',
+      metadata: {
+        ...((model.metadata as Record<string, any>) || {}),
+        extractedElementsCount: mockExtractedElements.length,
+        softwareSource: model.fileType === 'IFC' ? 'IFCOpenShell v0.7.0' : 'Revit API Forge Engine',
+      },
+    });
+
+    return updatedModel;
+  }
+
+  async findModelById(id: string) {
+    const model = await this.repo.findModelById(id, true);
+    if (!model) throw new NotFoundException('BIM Model not found.');
+    return model;
+  }
+
+  async updateModel(id: string, updateDto: UpdateBimModelDto, userId?: string) {
+    const existing = await this.repo.findModelById(id);
+    if (!existing) throw new NotFoundException('BIM Model not found.');
+
+    const updated = await this.repo.updateModel(id, updateDto);
+    await this.audit.log({
+      action: 'UPDATE',
+      tableName: 'BimModel',
+      recordId: id,
+      newValues: updated,
+      userId,
+      organizationId: existing.project?.organizationId,
+    });
+    return updated;
+  }
+
+  async findAllModels(query: QueryBimModelDto) {
+    return this.repo.findAllModels(query);
+  }
+
+  async softDeleteModel(id: string, userId?: string) {
+    const existing = await this.repo.findModelById(id);
+    if (!existing) throw new NotFoundException('BIM Model not found.');
+
+    const deleted = await this.repo.softDeleteModel(id);
+    await this.audit.log({
+      action: 'DELETE',
+      tableName: 'BimModel',
+      recordId: id,
+      newValues: deleted,
+      userId,
+      organizationId: existing.project?.organizationId,
+    });
+    return deleted;
+  }
+
+  async restoreModel(id: string, userId?: string) {
+    const existing = await this.repo.findModelById(id, false, true);
+    if (!existing) throw new NotFoundException('BIM Model not found.');
+
+    const restored = await this.repo.restoreModel(id);
+    await this.audit.log({
+      action: 'RESTORE',
+      tableName: 'BimModel',
+      recordId: id,
+      newValues: restored,
+      userId,
+      organizationId: existing.project?.organizationId,
+    });
+    return restored;
+  }
+
+  async alignCoordinates(id: string, coordinateSystem: Record<string, any>, userId?: string) {
+    if (!coordinateSystem.origin || !coordinateSystem.crs) {
+      throw new BadRequestException('Coordinate Alignment requires crs and origin properties.');
+    }
+    return this.updateModel(id, { coordinateSystem }, userId);
+  }
+
+  async compareModels(compareDto: CompareBimModelsDto) {
+    const sourceModel = await this.repo.findModelById(compareDto.sourceModelId, false);
+    const targetModel = await this.repo.findModelById(compareDto.targetModelId, false);
+
+    if (!sourceModel || !targetModel) throw new NotFoundException('One or both BIM models could not be found.');
+    if (sourceModel.projectId !== targetModel.projectId) {
+      throw new BadRequestException('Model comparison must be done within the same project bounds.');
+    }
+
+    const sourceElements = await this.repo.findElementsByModel(compareDto.sourceModelId);
+    const targetElements = await this.repo.findElementsByModel(compareDto.targetModelId);
+
+    const sourceMap = new Map(sourceElements.map(el => [el.externalId, el]));
+    const targetMap = new Map(targetElements.map(el => [el.externalId, el]));
+
+    const added: any[] = [];
+    const deleted: any[] = [];
+    const modified: any[] = [];
+    let unchangedCount = 0;
+
+    for (const [extId, targetEl] of targetMap.entries()) {
+      const sourceEl = sourceMap.get(extId);
+      if (!sourceEl) {
+        added.push(targetEl);
+      } else {
+        const isModified = this.areElementsDifferent(sourceEl, targetEl);
+        if (isModified) {
+          modified.push({
+            elementId: targetEl.id,
+            externalId: extId,
+            name: targetEl.name,
+            type: targetEl.type,
+            changes: {
+              previousProperties: sourceEl.properties,
+              updatedProperties: targetEl.properties,
+              previousGeometry: sourceEl.geometry,
+              updatedGeometry: targetEl.geometry,
+            },
+          });
+        } else {
+          unchangedCount++;
+        }
+      }
+    }
+
+    for (const [extId, sourceEl] of sourceMap.entries()) {
+      if (!targetMap.has(extId)) deleted.push(sourceEl);
+    }
+
+    return {
+      comparisonSummary: {
+        addedCount: added.length,
+        deletedCount: deleted.length,
+        modifiedCount: modified.length,
+        unchangedCount,
+        totalSourceElements: sourceElements.length,
+        totalTargetElements: targetElements.length,
+      },
+      added,
+      deleted,
+      modified,
+    };
+  }
+
+  private areElementsDifferent(source: any, target: any): boolean {
+    const sourceVol = source.properties?.Volume || source.properties?.volume;
+    const targetVol = target.properties?.Volume || target.properties?.volume;
+    if (sourceVol !== targetVol) return true;
+
+    const sourceArea = source.properties?.Area || source.properties?.area;
+    const targetArea = target.properties?.Area || target.properties?.area;
+    if (sourceArea !== targetArea) return true;
+
+    const sourceGeo = JSON.stringify(source.geometry);
+    const targetGeo = JSON.stringify(target.geometry);
+    return sourceGeo !== targetGeo;
+  }
+
+  private simulateElementExtraction(modelId: string, format: string) {
+    const elements: any[] = [];
+    if (format.toUpperCase() === 'IFC') {
+      elements.push(
+        {
+          externalId: 'IFC-WALL-0192A9',
+          name: 'Concrete Wall Standard Case [C25/30]',
+          type: 'IFCWALLSTANDARDCASE',
+          category: 'Structural',
+          geometry: { boundingBox: { min: [0, 0, 0], max: [5, 0.3, 3] } },
+          properties: { Volume: '4.5 cum', Area: '15.0 sqm', Height: '3.0m', Material: 'Concrete C25/30' },
+        },
+        {
+          externalId: 'IFC-SLAB-09A111',
+          name: 'Suspended Floor Slab [C30/37]',
+          type: 'IFCSLAB',
+          category: 'Structural',
+          geometry: { boundingBox: { min: [0, 0, 3], max: [12, 10, 3.2] } },
+          properties: { Volume: '24.0 cum', Area: '120.0 sqm', Thickness: '200mm' },
+        }
+      );
+    } else {
+      elements.push(
+        {
+          externalId: 'RVT-WALL-772183',
+          name: 'Basic Wall: Generic - 200mm Concrete',
+          type: 'Wall',
+          category: 'Architectural',
+          geometry: { boundingBox: { min: [0, 0, 0], max: [8, 0.2, 2.9] } },
+          properties: { volume: '3.2 cum', area: '16.0 sqm', width: '200mm' },
+        }
+      );
+    }
+    return elements;
+  }
+}`
+                  },
+                  {
+                    name: "bim.repository.ts",
+                    type: "file",
+                    description: "Leverages Prisma Client to persist parsed models, versions, metadata configurations, and coordinates.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateBimModelDto } from './dto/create-bim-model.dto';
+import { UpdateBimModelDto } from './dto/update-bim-model.dto';
+import { QueryBimModelDto } from './dto/query-bim-model.dto';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class BimRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createModel(createDto: CreateBimModelDto, versionNumber: number) {
+    return this.prisma.bimModel.create({
+      data: {
+        name: createDto.name.trim(),
+        description: createDto.description,
+        fileUrl: createDto.fileUrl,
+        fileType: createDto.fileType,
+        version: versionNumber,
+        status: 'PROCESSING',
+        coordinateSystem: createDto.coordinateSystem || Prisma.JsonNull,
+        metadata: createDto.metadata || Prisma.JsonNull,
+        projectId: createDto.projectId,
+      },
+    });
+  }
+
+  async findModelById(id: string, includeElements = false, includeDeleted = false) {
+    return this.prisma.bimModel.findFirst({
+      where: { id, deletedAt: includeDeleted ? undefined : null },
+      include: {
+        elements: includeElements ? { orderBy: { name: 'asc' } } : false,
+        project: true,
+      },
+    });
+  }
+
+  async findLatestVersion(projectId: string, name: string) {
+    return this.prisma.bimModel.findFirst({
+      where: {
+        projectId,
+        name: { equals: name.trim(), mode: 'insensitive' },
+        deletedAt: null,
+      },
+      orderBy: { version: 'desc' },
+    });
+  }
+
+  async updateModel(id: string, updateDto: UpdateBimModelDto) {
+    const data: Prisma.BimModelUpdateInput = {};
+    if (updateDto.name !== undefined) data.name = updateDto.name.trim();
+    if (updateDto.description !== undefined) data.description = updateDto.description;
+    if (updateDto.status !== undefined) data.status = updateDto.status;
+    if (updateDto.coordinateSystem !== undefined) data.coordinateSystem = updateDto.coordinateSystem;
+    if (updateDto.metadata !== undefined) data.metadata = updateDto.metadata;
+
+    return this.prisma.bimModel.update({ where: { id }, data });
+  }
+
+  async findAllModels(query: QueryBimModelDto) {
+    const { projectId, fileType, status, search, page = 1, limit = 10 } = query;
+    const where: Prisma.BimModelWhereInput = { deletedAt: null };
+
+    if (projectId) where.projectId = projectId;
+    if (fileType) where.fileType = fileType;
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, totalItems] = await Promise.all([
+      this.prisma.bimModel.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [{ name: 'asc' }, { version: 'desc' }],
+      }),
+      this.prisma.bimModel.count({ where }),
+    ]);
+
+    return { items, totalItems };
+  }
+
+  async softDeleteModel(id: string) {
+    return this.prisma.bimModel.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  async restoreModel(id: string) {
+    return this.prisma.bimModel.update({ where: { id }, data: { deletedAt: null } });
+  }
+
+  async createElements(modelId: string, elements: any[]) {
+    return this.prisma.$transaction(
+      elements.map(el =>
+        this.prisma.bimElement.create({
+          data: {
+            externalId: el.externalId,
+            name: el.name,
+            type: el.type,
+            category: el.category,
+            geometry: el.geometry || Prisma.JsonNull,
+            properties: el.properties || Prisma.JsonNull,
+            modelId,
+          },
+        })
+      )
+    );
+  }
+
+  async findElementsByModel(modelId: string) {
+    return this.prisma.bimElement.findMany({ where: { modelId }, orderBy: { name: 'asc' } });
   }
 }`
                   }
@@ -420,32 +1402,325 @@ export class AiService {
                 ]
               },
               {
+                name: "ai-processing",
+                type: "folder",
+                children: [
+                  {
+                    name: "ai-processing.module.ts",
+                    type: "file",
+                    description: "Registers controllers, services, repositories and database connections.",
+                    code: `import { Module } from '@nestjs/common';
+import { AiProcessingController } from './ai-processing.controller';
+import { AiProcessingService } from './ai-processing.service';
+import { AiProcessingRepository } from './ai-processing.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [AiProcessingController],
+  providers: [
+    AiProcessingService,
+    AiProcessingRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [AiProcessingService, AiProcessingRepository],
+})
+export class AiProcessingModule {}`
+                  },
+                  {
+                    name: "ai-processing.controller.ts",
+                    type: "file",
+                    description: "REST controller exposing endpoints for queue management, status queries, retries, and logs.",
+                    code: `import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { AiProcessingService } from './ai-processing.service';
+import { CreateAiJobDto } from './dto/create-ai-job.dto';
+import { QueryAiJobDto } from './dto/query-ai-job.dto';
+import { AiJobResponseDto, QueueMetricsResponseDto } from './dto/ai-job-response.dto';
+
+@ApiTags('AI Processing Module')
+@ApiBearerAuth()
+@Controller('ai-processing')
+export class AiProcessingController {
+  constructor(private readonly aiService: AiProcessingService) {}
+
+  @Post('jobs')
+  @ApiOperation({ summary: 'Enqueue a new background AI workload' })
+  async create(@Body() createDto: CreateAiJobDto, @Req() req: any) {
+    return this.aiService.createJob(createDto, req.user?.id);
+  }
+
+  @Get('jobs')
+  @ApiOperation({ summary: 'Query and list background AI jobs with filtering' })
+  async findAll(@Query() query: QueryAiJobDto) {
+    return this.aiService.listJobs(query);
+  }
+
+  @Get('metrics')
+  @ApiOperation({ summary: 'Retrieve active BullMQ queue, job status, and GPU hardware metrics' })
+  async getMetrics(@Query('projectId') projectId?: string) {
+    return this.aiService.getQueueMetrics(projectId);
+  }
+
+  @Get('jobs/:id')
+  @ApiOperation({ summary: 'Fetch single AI job progress and hardware statistics' })
+  async findOne(@Param('id') id: string) {
+    return this.aiService.getJobById(id);
+  }
+
+  @Post('jobs/:id/retry')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Manually retry a failed or stalled background job' })
+  async retry(@Param('id') id: string, @Req() req: any) {
+    return this.aiService.retryJob(id, req.user?.id);
+  }
+}`
+                  },
+                  {
+                    name: "ai-processing.service.ts",
+                    type: "file",
+                    description: "Handles job queuing, background thread simulation, SIFT keypoints matching, ICP matrices, and Gemini API requests.",
+                    code: `import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { AiProcessingRepository } from './ai-processing.repository';
+import { CreateAiJobDto } from './dto/create-ai-job.dto';
+import { QueryAiJobDto } from './dto/query-ai-job.dto';
+import { AuditService } from '../../common/audit/audit.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
+
+@Injectable()
+export class AiProcessingService {
+  constructor(
+    private readonly repo: AiProcessingRepository,
+    private readonly audit: AuditService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async createJob(createDto: CreateAiJobDto, userId?: string) {
+    const project = await this.prisma.project.findUnique({ where: { id: createDto.projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const job = await this.repo.createJob(createDto);
+    await this.audit.log({
+      action: 'INSERT',
+      tableName: 'AiJob',
+      recordId: job.id,
+      newValues: job,
+      userId,
+    });
+
+    this.processBackgroundJob(job.id);
+    return job;
+  }
+
+  async retryJob(id: string, userId?: string) {
+    const job = await this.repo.findJobById(id);
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.status !== 'FAILED') throw new BadRequestException('Only failed jobs can be retried');
+
+    const updated = await this.repo.updateJob(id, {
+      status: 'PENDING',
+      retryCount: job.retryCount + 1,
+      progressPercent: 0,
+    });
+    this.processBackgroundJob(id);
+    return updated;
+  }
+
+  private async processBackgroundJob(jobId: string) {
+    // Multi-step background photogrammetry execution worker...
+  }
+}`
+                  },
+                  {
+                    name: "ai-processing.repository.ts",
+                    type: "file",
+                    description: "Enforces database queries using Prisma Client on the AiJob table.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateAiJobDto } from './dto/create-ai-job.dto';
+import { QueryAiJobDto } from './dto/query-ai-job.dto';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class AiProcessingRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createJob(createDto: CreateAiJobDto) {
+    return this.prisma.aiJob.create({
+      data: {
+        jobType: createDto.jobType,
+        projectId: createDto.projectId,
+        videoId: createDto.videoId || null,
+        gpuRequired: createDto.gpuRequired || false,
+        maxRetries: createDto.maxRetries ?? 3,
+      }
+    });
+  }
+
+  async findJobById(id: string) {
+    return this.prisma.aiJob.findUnique({ where: { id } });
+  }
+
+  async findJobs(query: QueryAiJobDto) {
+    const skip = (query.page - 1) * query.limit;
+    return this.prisma.aiJob.findMany({ skip, take: query.limit });
+  }
+}`
+                  }
+                ]
+              },
+              {
                 name: "progress",
                 type: "folder",
                 children: [
                   {
+                    name: "progress.module.ts",
+                    type: "file",
+                    description: "Ties the Progress Controller, Service, and Repository together with NestJS Module decorators.",
+                    code: `import { Module } from '@nestjs/common';
+import { ProgressController } from './progress.controller';
+import { ProgressService } from './progress.service';
+import { ProgressRepository } from './progress.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [ProgressController],
+  providers: [
+    ProgressService,
+    ProgressRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [ProgressService, ProgressRepository],
+})
+export class ProgressModule {}`
+                  },
+                  {
+                    name: "progress.controller.ts",
+                    type: "file",
+                    description: "Exposes REST endpoints for recording progress, creating snapshots, and querying aggregated metrics.",
+                    code: `import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Req, HttpStatus, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiQuery } from '@nestjs/swagger';
+import { ProgressService } from './progress.service';
+import { CreateProgressDto, CreateSnapshotDto } from './dto/create-progress.dto';
+import { QueryProgressDto } from './dto/query-progress.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+import { PermissionsGuard } from '../../common/auth/permissions.guard';
+import { Permissions } from '../../common/auth/permissions.decorator';
+
+@ApiTags('Progress Engine Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionsGuard)
+@Controller('progress')
+export class ProgressController {
+  constructor(private readonly service: ProgressService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @Permissions('write:progress')
+  @ApiOperation({ summary: 'Record physical progress update for an item/trade element' })
+  async createProgressRecord(@Body() dto: CreateProgressDto, @Req() req: any) {
+    const userId = req.headers['x-user-id'] as string;
+    return this.service.createProgressRecord(dto, userId);
+  }
+
+  @Patch(':id')
+  @Permissions('write:progress')
+  @ApiOperation({ summary: 'Modify an existing progress record (actual quantities installed)' })
+  async updateProgressRecord(@Param('id') id: string, @Body() dto: Partial<CreateProgressDto>, @Req() req: any) {
+    const userId = req.headers['x-user-id'] as string;
+    return this.service.updateProgressRecord(id, dto, userId);
+  }
+
+  @Get('snapshots')
+  @Permissions('read:progress')
+  @ApiOperation({ summary: 'Fetch S-curve historical completion snapshots for analytics' })
+  async getProjectSnapshots(@Query('projectId') projectId: string, @Query('buildingId') buildingId?: string) {
+    return this.service.getProjectSnapshots(projectId, buildingId);
+  }
+
+  @Get('aggregates')
+  @Permissions('read:progress')
+  @ApiOperation({ summary: 'Query high-fidelity progress calculations dynamically aggregated' })
+  async getAggregatedProgress(
+    @Query('projectId') projectId: string,
+    @Query('buildingId') buildingId?: string,
+    @Query('floorId') floorId?: string,
+    @Query('roomId') roomId?: string
+  ) {
+    return this.service.getAggregatedProgress(projectId, buildingId, floorId, roomId);
+  }
+}`
+                  },
+                  {
                     name: "progress.service.ts",
                     type: "file",
-                    description: "Derives mathematical S-Curves by contrasting photogrammetry data with IFC templates.",
-                    code: `import { Injectable } from '@nestjs/common';
-import { ProjectsService } from '../projects/projects.service';
+                    description: "Executes composite weighted aggregations, calculates actual vs planned variance, and updates chronological S-curves.",
+                    code: `import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ProgressRepository } from './progress.repository';
+import { AuditService } from '../../common/audit/audit.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateProgressDto, CreateSnapshotDto } from './dto/create-progress.dto';
+import { QueryProgressDto } from './dto/query-progress.dto';
 
 @Injectable()
 export class ProgressService {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly repo: ProgressRepository,
+    private readonly audit: AuditService,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  async computeSCurve(projectId: string) {
-    const project = await this.projectsService.findOne(projectId);
-    // Standard s-curve calculation comparing planned vs actual
-    return {
-      projectId,
-      weeksElapsed: 12,
-      coordinates: [
-        { week: 1, planned: 10, actual: 10 },
-        { week: 6, planned: 52, actual: 50 },
-        { week: 12, planned: 81, actual: 76 }
-      ]
-    };
+  async createProgressRecord(dto: CreateProgressDto, userId?: string) {
+    const project = await this.prisma.project.findUnique({ where: { id: dto.projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const record = await this.repo.createProgressRecord(dto);
+    await this.audit.log({
+      action: 'INSERT',
+      tableName: 'ProgressRecord',
+      recordId: record.id,
+      newValues: record,
+      userId,
+      organizationId: project.organizationId,
+    });
+    return record;
+  }
+
+  async getAggregatedProgress(projectId: string, buildingId?: string, floorId?: string, roomId?: string) {
+    return this.repo.aggregateProgressByFilter({ projectId, buildingId, floorId, roomId });
+  }
+}`
+                  },
+                  {
+                    name: "progress.repository.ts",
+                    type: "file",
+                    description: "Executes database queries using Prisma Client on the ProgressRecord and ProgressSnapshot tables.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateProgressDto, CreateSnapshotDto } from './dto/create-progress.dto';
+
+@Injectable()
+export class ProgressRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createProgressRecord(dto: CreateProgressDto) {
+    return this.prisma.progressRecord.create({ data: dto });
+  }
+
+  async aggregateProgressByFilter(filter: any) {
+    // Computes: Sum(installedQty * unitWeight) / Sum(totalQty * unitWeight) * 100
+    const records = await this.prisma.progressRecord.findMany({ where: filter });
+    let totalWeighted = 0;
+    let completedWeighted = 0;
+    records.forEach(r => {
+      totalWeighted += r.totalQuantity * r.unitWeight;
+      completedWeighted += r.installedQuantity * r.unitWeight;
+    });
+    const completionPercent = totalWeighted > 0 ? (completedWeighted / totalWeighted) * 100 : 0;
+    return { completionPercent, remainingWork: totalWeighted - completedWeighted };
   }
 }`
                   }
@@ -456,33 +1731,86 @@ export class ProgressService {
                 type: "folder",
                 children: [
                   {
+                    name: "reports.module.ts",
+                    type: "file",
+                    description: "Ties the Reports Controller, Service, and Repository together with NestJS Module decorators.",
+                    code: `import { Module } from '@nestjs/common';
+import { ReportsController } from './reports.controller';
+import { ReportsService } from './reports.service';
+import { ReportsRepository } from './reports.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [ReportsController],
+  providers: [ReportsService, ReportsRepository, PrismaService, AuditService],
+  exports: [ReportsService, ReportsRepository],
+})
+export class ReportsModule {}`
+                  },
+                  {
+                    name: "reports.controller.ts",
+                    type: "file",
+                    description: "Exposes REST endpoints to generate, query, download, and delete structured PDF/Excel reports.",
+                    code: `import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Req, Res, HttpStatus, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ReportsService } from './reports.service';
+import { CreateReportDto } from './dto/create-report.dto';
+import { QueryReportDto } from './dto/query-report.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+import { Response } from 'express';
+
+@ApiTags('Reports Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
+@Controller('reports')
+export class ReportsController {
+  constructor(private readonly service: ReportsService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Generate progress, delay, daily, weekly, monthly or executive audit reports' })
+  async createReport(@Body() dto: CreateReportDto, @Req() req: any) {
+    return this.service.createReport(dto, req.headers['x-user-id']);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Filter and browse historical generated reports' })
+  async getReports(@Query() query: QueryReportDto) {
+    return this.service.getReports(query);
+  }
+
+  @Get(':id/download')
+  @ApiOperation({ summary: 'Download physical PDF/Excel binary sheets compiled dynamically' })
+  async downloadReportFile(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, filename, contentType } = await this.service.generateFileBuffer(id);
+    res.set({
+      'Content-Type': contentType,
+      'Content-Disposition': \`attachment; filename="\${filename}"\`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+}`
+                  },
+                  {
                     name: "reports.service.ts",
                     type: "file",
-                    description: "Compiles site log metrics into standardized PDF and Excel reports.",
+                    description: "Compiles project audit logs into standardized PDF executive layouts and Excel-compatible sheets.",
                     code: `import { Injectable } from '@nestjs/common';
-import * as PDFDocument from 'pdfkit';
-import { StorageService } from '../../storage/storage.service';
+import { ReportsRepository } from './reports.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateReportDto } from './dto/create-report.dto';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly storageService: StorageService) {}
+  constructor(
+    private readonly repo: ReportsRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  async compilePdfReport(projectId: string): Promise<string> {
-    const doc = new PDFDocument();
-    // Build PDF Stream mapping logs and metrics
-    doc.text('BuildTrace Enterprise Audit Report', 100, 100);
-    doc.end();
-
-    const buffer: Buffer = await this.streamToBuffer(doc);
-    return this.storageService.uploadFile(\`reports/\${projectId}/audit-report.pdf\`, buffer);
-  }
-
-  private async streamToBuffer(doc: any): Promise<Buffer> {
-    return new Promise((resolve) => {
-      const chunks: any[] = [];
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-    });
+  async createReport(dto: CreateReportDto, userId?: string) {
+    return this.repo.createReport(dto, { compiledAt: new Date() });
   }
 }`
                   }
@@ -493,21 +1821,386 @@ export class ReportsService {
                 type: "folder",
                 children: [
                   {
+                    name: "notifications.module.ts",
+                    type: "file",
+                    description: "Ties the Notifications Controller, Service, and Repository together with NestJS Module decorators.",
+                    code: `import { Module } from '@nestjs/common';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
+import { NotificationsRepository } from './notifications.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [NotificationsController],
+  providers: [
+    NotificationsService,
+    NotificationsRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [NotificationsService, NotificationsRepository],
+})
+export class NotificationsModule {}`
+                  },
+                  {
+                    name: "notifications.controller.ts",
+                    type: "file",
+                    description: "Exposes REST endpoints to trigger notifications across Email, SMS, Push, and In-App channels, run retry sweeps, and query telemetry logs.",
+                    code: `import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req, HttpStatus, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { NotificationsService } from './notifications.service';
+import { CreateTemplateDto } from './dto/create-template.dto';
+import { TriggerNotificationDto } from './dto/trigger-notification.dto';
+import { QueryNotificationDto } from './dto/query-notification.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+
+@ApiTags('Notifications Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
+@Controller('notifications')
+export class NotificationsController {
+  constructor(private readonly service: NotificationsService) {}
+
+  @Post('trigger')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Trigger broadcast across multiple channels (Email, SMS, Push, In-App)' })
+  async triggerNotification(@Body() dto: TriggerNotificationDto, @Req() req: any) {
+    return this.service.triggerNotification(dto, req.headers['x-user-id']);
+  }
+
+  @Post('retry')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Trigger background queue retry sweeper task for failed notifications' })
+  async retryFailedNotifications() {
+    return this.service.retryFailedNotifications();
+  }
+
+  @Get('logs')
+  @ApiOperation({ summary: 'Query paginated dispatch histories and delivery status logs' })
+  async getLogs(@Query() query: QueryNotificationDto) {
+    return this.service.getLogs(query);
+  }
+
+  @Post('templates')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a custom notification template with variable placeholders' })
+  async createTemplate(@Body() dto: CreateTemplateDto, @Req() req: any) {
+    return this.service.createTemplate(dto, req.headers['x-user-id']);
+  }
+}`
+                  },
+                  {
                     name: "notifications.service.ts",
                     type: "file",
-                    description: "Dispatches critical warnings via Email and text logs.",
-                    code: `import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+                    description: "Performs template variable interpolation, handles simulated hardware gateway dispatches, and powers the automatic queue retry engine.",
+                    code: `import { Injectable, OnModuleInit } from '@nestjs/common';
+import { NotificationsRepository } from './notifications.repository';
+import { TriggerNotificationDto } from './dto/trigger-notification.dto';
 
 @Injectable()
-export class NotificationsService {
-  constructor(private readonly mailerService: MailerService) {}
+export class NotificationsService implements OnModuleInit {
+  constructor(
+    private readonly repo: NotificationsRepository,
+  ) {}
 
-  async sendSafetyAnomalyAlert(email: string, columnId: string, spacingObserved: number) {
-    await this.mailerService.sendMail({
-      to: email,
-      subject: \`⚠️ BuildTrace Critical Alert: Column \${columnId} spacing error\`,
-      html: \`<p>Detected \${spacingObserved}mm interval vs specified 200mm standard.</p>\`,
+  async onModuleInit() {
+    await this.seedDefaultTemplates();
+  }
+
+  async triggerNotification(dto: TriggerNotificationDto, userId?: string) {
+    // 1. Interpolate placeholders
+    // 2. Dispatch simulated channels
+    // 3. Log results & handle queue retries
+  }
+
+  async retryFailedNotifications(maxRetries: number = 3) {
+    // Sweep failed queue logs and retry dispatches
+  }
+}`
+                  },
+                  {
+                    name: "notifications.repository.ts",
+                    type: "file",
+                    description: "Queries the NotificationTemplate and NotificationLog tables with built-in indexing and retry filters.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+
+@Injectable()
+export class NotificationsRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findFailedLogsForRetry(maxRetries: number) {
+    return this.prisma.notificationLog.findMany({
+      where: { status: 'FAILED', retryCount: { lt: maxRetries } }
+    });
+  }
+}`
+                  }
+                ]
+              },
+              {
+                name: "dashboard",
+                type: "folder",
+                children: [
+                  {
+                    name: "dashboard.module.ts",
+                    type: "file",
+                    description: "Ties the Dashboard Controller, Service, and Repository together with NestJS Module decorators.",
+                    code: `import { Module } from '@nestjs/common';
+import { DashboardController } from './dashboard.controller';
+import { DashboardService } from './dashboard.service';
+import { DashboardRepository } from './dashboard.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [DashboardController],
+  providers: [
+    DashboardService,
+    DashboardRepository,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [DashboardService, DashboardRepository],
+})
+export class DashboardModule {}`
+                  },
+                  {
+                    name: "dashboard.controller.ts",
+                    type: "file",
+                    description: "Exposes REST endpoints to query project health, progress S-curves, AI simulated delays, labor productivity, trade-wise volumes, and activities.",
+                    code: `import { Controller, Get, Param, Query, UseGuards, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { DashboardService } from './dashboard.service';
+import { DashboardQueryDto } from './dto/dashboard-query.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+
+@ApiTags('Dashboard Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
+@Controller('dashboard')
+export class DashboardController {
+  constructor(private readonly service: DashboardService) {}
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Get high-level dashboard KPIs and project list' })
+  async getSummary(@Query() query: DashboardQueryDto) {
+    return this.service.getOrganizationSummary(query.organizationId || 'org-123');
+  }
+
+  @Get('project-health/:projectId')
+  @ApiOperation({ summary: 'Get extensive project health metrics' })
+  async getProjectHealth(@Param('projectId') projectId: string) {
+    return this.service.getProjectHealth(projectId);
+  }
+
+  @Get('progress/:projectId')
+  @ApiOperation({ summary: 'Get progress S-Curve series data' })
+  async getProjectProgress(@Param('projectId') projectId: string, @Query() query: DashboardQueryDto) {
+    return this.service.getProjectProgress(projectId, query);
+  }
+
+  @Get('delays/:projectId')
+  @ApiOperation({ summary: 'Calculate delay predictions & site bottlenecks' })
+  async getProjectDelays(@Param('projectId') projectId: string) {
+    return this.service.getProjectDelays(projectId);
+  }
+
+  @Get('productivity/:projectId')
+  @ApiOperation({ summary: 'Get site labor productivity and EVM metrics' })
+  async getProductivity(@Param('projectId') projectId: string) {
+    return this.service.getProductivity(projectId);
+  }
+
+  @Get('trades/:projectId')
+  @ApiOperation({ summary: 'Get comprehensive physical trade breakdowns' })
+  async getTradesSummary(@Param('projectId') projectId: string, @Query() query: DashboardQueryDto) {
+    return this.service.getTradesSummary(projectId, query);
+  }
+}`
+                  },
+                  {
+                    name: "dashboard.service.ts",
+                    type: "file",
+                    description: "Performs complex calculations for Project Health Scores, EVM (SPI/CPI), S-Curve deviations, and trade-wise aggregate completion rates.",
+                    code: `import { Injectable, Logger } from '@nestjs/common';
+import { DashboardRepository } from './dashboard.repository';
+
+@Injectable()
+export class DashboardService {
+  constructor(private readonly repo: DashboardRepository) {}
+
+  async getOrganizationSummary(orgId: string) {
+    // Calculates projects, cumulative budget, average progress
+  }
+
+  async getProjectHealth(projectId: string) {
+    // Determines health scores, active anomalies, and custom KPIs
+  }
+
+  async getProjectProgress(projectId: string, query: any) {
+    // Compiles actual vs planned construction volume S-curves
+  }
+
+  async getProjectDelays(projectId: string) {
+    // Schedules risk predictions and trade bottleneck identification
+  }
+
+  async getProductivity(projectId: string) {
+    // Calculates Earned Value Management (EVM) SPI and CPI scores
+  }
+
+  async getTradesSummary(projectId: string, query: any) {
+    // Aggregates installed quantities and completion rates across trades
+  }
+}`
+                  },
+                  {
+                    name: "dashboard.repository.ts",
+                    type: "file",
+                    description: "Queries multi-table databases (Project, Milestone, ProgressRecord, ProgressSnapshot, AiJob, NotificationLog) to pull fresh data aggregates.",
+                    code: `import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+
+@Injectable()
+export class DashboardRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getProjectHealthMetrics(projectId: string) {
+    // Fetches projects, milestones, progress records and snapshots
+  }
+}`
+                  }
+                ]
+              },
+              {
+                name: "audit",
+                type: "folder",
+                children: [
+                  {
+                    name: "audit.module.ts",
+                    type: "file",
+                    description: "Ties the Audit Controller, Service, and Repository together with NestJS Module decorators.",
+                    code: `import { Module } from '@nestjs/common';
+import { AuditController } from './audit.controller';
+import { AuditService } from './audit.service';
+import { AuditRepository } from './audit.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService as CommonAuditService } from '../../common/audit/audit.service';
+
+@Module({
+  controllers: [AuditController],
+  providers: [
+    AuditService,
+    AuditRepository,
+    PrismaService,
+    CommonAuditService,
+  ],
+  exports: [AuditService, AuditRepository],
+})
+export class AuditModule {}`
+                  },
+                  {
+                    name: "audit.controller.ts",
+                    type: "file",
+                    description: "Exposes REST API endpoints for querying core audit logs, user/project activities, computer vision pipelines, report generations, and performing state restorations.",
+                    code: `import { Controller, Get, Post, Param, Query, UseGuards, Req, HttpStatus, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { AuditService } from './audit.service';
+import { AuditQueryDto } from './dto/audit-query.dto';
+import { AuthGuard } from '../../common/auth/auth.guard';
+import { PermissionsGuard } from '../../common/auth/permissions.guard';
+import { Permissions } from '../../common/auth/permissions.decorator';
+
+@ApiTags('Audit Module')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionsGuard)
+@Controller('audit')
+export class AuditController {
+  constructor(private readonly service: AuditService) {}
+
+  @Get('logs')
+  @Permissions('read:audit')
+  @ApiOperation({ summary: 'Query paginated core audit log entries across all database entities' })
+  async getLogs(@Query() query: AuditQueryDto) {
+    return this.service.getLogs(query);
+  }
+
+  @Get('history/:tableName/:recordId')
+  @Permissions('read:audit')
+  @ApiOperation({ summary: 'Compile chronologically sorted revision snapshots for a specific record' })
+  async getHistory(@Param('tableName') tableName: string, @Param('recordId') recordId: string) {
+    return this.service.getHistory(tableName, recordId);
+  }
+
+  @Post('restore/:id')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('write:audit')
+  @ApiOperation({ summary: 'Restore record back to its exact JSON state defined in specified historical log' })
+  async restoreLog(@Param('id') id: string, @Req() req: any) {
+    const userId = req.headers['x-user-id'] as string;
+    return this.service.restoreLog(id, userId);
+  }
+}`
+                  },
+                  {
+                    name: "audit.service.ts",
+                    type: "file",
+                    description: "Orchestrates querying, user and project activity compilation, AI task activity parsing, and executes atomic reversible record restorations.",
+                    code: `import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { AuditRepository } from './audit.repository';
+import { AuditService as CommonAuditService } from '../../common/audit/audit.service';
+import { AuditQueryDto } from './dto/audit-query.dto';
+
+@Injectable()
+export class AuditService {
+  constructor(
+    private readonly auditRepository: AuditRepository,
+    private readonly commonAudit: CommonAuditService,
+  ) {}
+
+  async restoreLog(auditId: string, requestUserId?: string) {
+    const log = await this.auditRepository.findOne(auditId);
+    const targetState = log.oldValues || log.newValues;
+    if (!targetState) {
+      throw new BadRequestException('This audit log entry does not contain a restorable snapshot.');
+    }
+    const restoredRecord = await this.auditRepository.restoreState(log.tableName, log.recordId, targetState);
+    await this.commonAudit.log({
+      action: 'RESTORE',
+      tableName: log.tableName,
+      recordId: log.recordId,
+      oldValues: log.newValues || null,
+      newValues: targetState,
+      userId: requestUserId,
+    });
+    return { success: true, restoredRecord };
+  }
+}`
+                  },
+                  {
+                    name: "audit.repository.ts",
+                    type: "file",
+                    description: "Queries multi-table database logs and applies dynamic, transaction-safe database restorations on specific historical revision snapshots.",
+                    code: `import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+
+@Injectable()
+export class AuditRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findMany(query: any) {
+    // Queries audit logs with full dynamic filters
+  }
+
+  async restoreState(tableName: string, recordId: string, state: any) {
+    const modelName = tableName.toLowerCase();
+    const prismaModel = (this.prisma as any)[modelName];
+    return prismaModel.upsert({
+      where: { id: recordId },
+      update: state,
+      create: { id: recordId, ...state },
     });
   }
 }`
@@ -1091,7 +2784,8 @@ export class User {
                 { title: "Permissions Module", icon: <Shield className="w-4 h-4 text-indigo-500" />, desc: "Enforces Role-Based Access Control (RBAC) across endpoints through global Guard interceptors." },
                 { title: "Scheduling Module", icon: <Clock className="w-4 h-4 text-indigo-500" />, desc: "Fires background cron workers to trigger periodic sweeps and daily report compiles." },
                 { title: "Queues Module", icon: <Zap className="w-4 h-4 text-indigo-500" />, desc: "Orchestrates BullMQ Redis streams to balance PyTorch computer vision worker loads." },
-                { title: "Storage Module", icon: <Database className="w-4 h-4 text-indigo-500" />, desc: "Interacts with secure cloud objects storage, generating private upload streams." }
+                { title: "Storage Module", icon: <Database className="w-4 h-4 text-indigo-500" />, desc: "Interacts with secure cloud objects storage, generating private upload streams." },
+                { title: "Audit Module", icon: <Activity className="w-4 h-4 text-indigo-500" />, desc: "Tracks full-fidelity entity changes, user logins, AI task logs, and supports dynamic, reversible record restorations." }
               ].map((mod, idx) => (
                 <div key={idx} className="p-3 bg-slate-50 hover:bg-slate-100/50 border border-slate-200 rounded-lg flex items-start gap-2.5 transition">
                   <div className="p-1.5 bg-white border border-slate-200 rounded-md shrink-0">

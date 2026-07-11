@@ -39,7 +39,7 @@ import {
 // API Endpoint Definition Type
 interface ApiEndpoint {
   id: string;
-  category: "auth" | "projects" | "buildings" | "floors" | "rooms" | "videos" | "frames" | "ai" | "progress" | "schedules" | "reports" | "users" | "notifications";
+  category: "auth" | "projects" | "buildings" | "floors" | "rooms" | "videos" | "frames" | "ai" | "progress" | "schedules" | "reports" | "users" | "notifications" | "dashboard";
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
   summary: string;
@@ -342,37 +342,123 @@ export default function RestApiDocumentation() {
 
     // --- 6. VIDEOS ---
     {
-      id: "videos-upload",
+      id: "videos-init",
       category: "videos",
       method: "POST",
-      path: "/api/v1/rooms/{room_id}/videos/upload",
-      summary: "Upload drone photogrammetry or crane camera feed",
-      description: "Accepts raw high-res MP4/MOV sequences of spatial surveys and schedules the Python background parsing workers.",
+      path: "/api/v1/videos/init",
+      summary: "Initialize chunked video upload session on S3",
+      description: "Generates an S3 upload token, validates MIME formats, calculates total expected chunks, and provisions a video resource container.",
       requiresAuth: true,
       parameters: [
-        { name: "room_id", in: "path", type: "string", required: true, description: "ID of target room/zone scope", defaultValue: "zone-c4-d8" },
-        { name: "video_file", in: "body", type: "binary", required: true, description: "The raw survey stream", defaultValue: "drone_sweep_v104.mp4" }
+        { name: "name", in: "body", type: "string", required: true, description: "Name of the video scan or audit sweep", defaultValue: "Tower A Structural Flyby" },
+        { name: "fileSize", in: "body", type: "number", required: true, description: "Total video file size in bytes", defaultValue: "104857600" },
+        { name: "mimeType", in: "body", type: "string", required: true, description: "Video container MIME type (MP4/MOV)", defaultValue: "video/mp4" },
+        { name: "projectId", in: "body", type: "string", required: true, description: "Target project GUID", defaultValue: "proj-blr-02" },
+        { name: "is360", in: "body", type: "boolean", required: false, description: "Flag for 360-degree equirectangular immersive projection", defaultValue: "true" }
       ],
+      requestBodySchema: `{
+  "name": "Tower A Structural Flyby",
+  "fileSize": 104857600,
+  "mimeType": "video/mp4",
+  "projectId": "proj-blr-02",
+  "is360": true
+}`,
       successResponseSchema: `{
-  "status": "processing",
-  "video_id": "vid-drone-5092",
-  "original_name": "drone_sweep_v104.mp4",
-  "queued_job_id": "job-ai-891",
-  "estimated_time_seconds": 90
+  "videoId": "vid-drone-5092",
+  "uploadToken": "tok_xzy123abc456",
+  "chunkSize": 5242880,
+  "totalChunks": 20,
+  "progressPercent": 0
 }`,
       errorResponses: [
-        { status: 415, code: "BT-3001", description: "Unsupported video codec or size limit exceeded.", schema: `{"status":"error","code":"BT-3001","message":"Maximum upload size limit is 450MB."}` }
+        { status: 400, code: "BT-3001", description: "Unsupported MIME format or zero file size.", schema: `{"status":"error","code":"BT-3001","message":"Allowed formats: MP4, MOV, MKV, WEBM, AVI."}` }
       ],
-      curlTemplate: `curl -X POST "https://fastapi.buildtrace.in/v1/api/v1/rooms/zone-c4-d8/videos/upload" \\
+      curlTemplate: `curl -X POST "https://fastapi.buildtrace.in/v1/api/v1/videos/init" \\
   -H "Authorization: Bearer <JWT_ACCESS_TOKEN>" \\
-  -F "video_file=@drone_sweep_v104.mp4"`,
+  -H "Content-Type: application/json" \\
+  -d '{"name": "Tower A Structural Flyby", "fileSize": 104857600, "mimeType": "video/mp4", "projectId": "proj-blr-02", "is360": true}'`,
       mockResponseData: {
-        status: "processing",
-        video_id: "vid-drone-5092",
-        original_name: "drone_sweep_v104.mp4",
-        queued_job_id: "job-ai-891",
-        estimated_time_seconds: 90,
-        submission_time: "2026-07-09T08:00:00Z"
+        videoId: "vid-drone-5092",
+        uploadToken: "tok_xzy123abc456",
+        chunkSize: 5242880,
+        totalChunks: 20,
+        progressPercent: 0
+      }
+    },
+    {
+      id: "videos-upload-chunk",
+      category: "videos",
+      method: "POST",
+      path: "/api/v1/videos/upload/{uploadToken}",
+      summary: "Upload sequential binary video chunk to S3",
+      description: "Accepts raw file binary slice, maps to chunk index, and appends to AWS S3 storage parts. Triggers assembly/compression/thumbnail extraction on completion.",
+      requiresAuth: true,
+      parameters: [
+        { name: "uploadToken", in: "path", type: "string", required: true, description: "Active session token from init step", defaultValue: "tok_xzy123abc456" },
+        { name: "chunkIndex", in: "body", type: "number", required: true, description: "0-based index of the chunk sequence", defaultValue: "0" },
+        { name: "totalChunks", in: "body", type: "number", required: true, description: "Total chunks count matching init payload", defaultValue: "20" },
+        { name: "file", in: "body", type: "binary", required: true, description: "Slices of raw video buffer", defaultValue: "" }
+      ],
+      successResponseSchema: `{
+  "uploadToken": "tok_xzy123abc456",
+  "chunkIndex": 0,
+  "uploadedChunks": [0],
+  "progressPercent": 5,
+  "status": "UPLOADING"
+}`,
+      errorResponses: [
+        { status: 404, code: "BT-3003", description: "Session token not found or already completed.", schema: `{"status":"error","code":"BT-3003","message":"Video Upload Session not found."}` }
+      ],
+      curlTemplate: `curl -X POST "https://fastapi.buildtrace.in/v1/api/v1/videos/upload/tok_xzy123abc456" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>" \\
+  -F "chunkIndex=0" \\
+  -F "totalChunks=20" \\
+  -F "file=@chunk_0.bin"`,
+      mockResponseData: {
+        uploadToken: "tok_xzy123abc456",
+        chunkIndex: 0,
+        uploadedChunks: [0],
+        progressPercent: 5,
+        status: "UPLOADING"
+      }
+    },
+    {
+      id: "videos-resume-status",
+      category: "videos",
+      method: "GET",
+      path: "/api/v1/videos/session/{uploadToken}",
+      summary: "Query upload progress & active chunk map for resume support",
+      description: "Returns an array of already received chunk indexes, allowing client to identify missing slices and resume uploading seamlessly without re-transmitting received parts.",
+      requiresAuth: true,
+      parameters: [
+        { name: "uploadToken", in: "path", type: "string", required: true, description: "Target session upload token", defaultValue: "tok_xzy123abc456" }
+      ],
+      successResponseSchema: `{
+  "id": "sess-uuid-98213",
+  "uploadToken": "tok_xzy123abc456",
+  "fileName": "Tower A Structural Flyby.mp4",
+  "fileSize": 104857600,
+  "chunkSize": 5242880,
+  "totalChunks": 20,
+  "uploadedChunks": [0, 1, 2, 4, 5],
+  "status": "UPLOADING",
+  "progressPercent": 25,
+  "createdAt": "2026-07-09T08:00:00Z"
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/videos/session/tok_xzy123abc456" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        id: "sess-uuid-98213",
+        uploadToken: "tok_xzy123abc456",
+        fileName: "Tower A Structural Flyby.mp4",
+        fileSize: 104857600,
+        chunkSize: 5242880,
+        totalChunks: 20,
+        uploadedChunks: [0, 1, 2, 4, 5],
+        status: "UPLOADING",
+        progressPercent: 25,
+        createdAt: "2026-07-09T08:00:00Z"
       }
     },
 
@@ -645,6 +731,295 @@ export default function RestApiDocumentation() {
           }
         ]
       }
+    },
+
+    // --- 14. DASHBOARD & ANALYTICS ---
+    {
+      id: "dashboard-summary",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/summary",
+      summary: "Retrieve high-level organizational KPIs & project list",
+      description: "Generates high-level metrics including active/planning/completed project counts, cumulative budgets, average progress rates, and project health summary listings.",
+      requiresAuth: true,
+      parameters: [
+        { name: "organizationId", in: "query", type: "string", required: false, description: "Filter by organization ID", defaultValue: "org-123" }
+      ],
+      successResponseSchema: `{
+  "activeProjects": 4,
+  "planningProjects": 2,
+  "completedProjects": 1,
+  "totalProjects": 7,
+  "cumulativeBudget": 54000000,
+  "averageProgress": 63.4,
+  "projectSummaries": [
+    { "id": "proj-blr-02", "name": "Bangalore Tech Park Phase 2", "status": "ACTIVE", "completionRate": 58.2, "milestoneCount": 12, "memberCount": 8, "health": "At Risk" },
+    { "id": "proj-mum-01", "name": "Mumbai Commercial Center", "status": "ACTIVE", "completionRate": 75.0, "milestoneCount": 15, "memberCount": 12, "health": "On Track" }
+  ]
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/summary?organizationId=org-123" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        activeProjects: 4,
+        planningProjects: 2,
+        completedProjects: 1,
+        totalProjects: 7,
+        cumulativeBudget: 54000000,
+        averageProgress: 63.4,
+        projectSummaries: [
+          { id: "proj-blr-02", name: "Bangalore Tech Park Phase 2", status: "ACTIVE", completionRate: 58.2, milestoneCount: 12, memberCount: 8, health: "At Risk" },
+          { id: "proj-mum-01", name: "Mumbai Commercial Center", status: "ACTIVE", completionRate: 75.0, milestoneCount: 15, memberCount: 12, health: "On Track" },
+          { id: "proj-del-01", name: "Delhi Airport Terminal Expansion", status: "PLANNING", completionRate: 12.5, milestoneCount: 8, memberCount: 5, health: "On Track" },
+          { id: "proj-chn-01", name: "Chennai Smart Residential Block", status: "ACTIVE", completionRate: 42.1, milestoneCount: 10, memberCount: 7, health: "Critical Delay" }
+        ]
+      }
+    },
+    {
+      id: "dashboard-project-health",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/project-health/{project_id}",
+      summary: "Fetch extensive project health telemetry & KPIs",
+      description: "Calculates real-time health score, budget variance, remaining schedule deviation in days, and active structural anomalies using AI vision telemetry.",
+      requiresAuth: true,
+      parameters: [
+        { name: "project_id", in: "path", type: "string", required: true, description: "Unique project identifier", defaultValue: "proj-blr-02" }
+      ],
+      successResponseSchema: `{
+  "projectId": "proj-blr-02",
+  "projectName": "Bangalore Tech Park Phase 2",
+  "status": "ACTIVE",
+  "overallHealth": "At Risk",
+  "healthScore": 78,
+  "budgetVariance": -1450000,
+  "scheduleVarianceDays": -18,
+  "activeAnomaliesCount": 3,
+  "kpiMetrics": {
+    "milestoneCompletionRate": 64.2,
+    "budgetUtilizationPercent": 78.5,
+    "weeklyProgressPace": 2.1,
+    "aiDetectionPrecisionPercent": 94.6
+  }
+}`,
+      errorResponses: [
+        { status: 404, code: "BT-2001", description: "Project not found.", schema: `{"status":"error","code":"BT-2001","message":"The project identifier does not map to any database records."}` }
+      ],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/project-health/proj-blr-02" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        projectId: "proj-blr-02",
+        projectName: "Bangalore Tech Park Phase 2",
+        status: "ACTIVE",
+        overallHealth: "At Risk",
+        healthScore: 78,
+        budgetVariance: -1450000,
+        scheduleVarianceDays: -18,
+        activeAnomaliesCount: 3,
+        kpiMetrics: {
+          milestoneCompletionRate: 64.2,
+          budgetUtilizationPercent: 78.5,
+          weeklyProgressPace: 2.1,
+          aiDetectionPrecisionPercent: 94.6
+        }
+      }
+    },
+    {
+      id: "dashboard-progress",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/progress/{project_id}",
+      summary: "Compile actual vs planned progress (S-Curve coords)",
+      description: "Aggregates week-by-week physical volumetric completion. Compares drone-scanned installed volume against planned structural baseline values.",
+      requiresAuth: true,
+      parameters: [
+        { name: "project_id", in: "path", type: "string", required: true, description: "Unique project identifier", defaultValue: "proj-blr-02" },
+        { name: "startDate", in: "query", type: "string", required: false, description: "Y-m-d start date" },
+        { name: "endDate", in: "query", type: "string", required: false, description: "Y-m-d end date" }
+      ],
+      successResponseSchema: `{
+  "projectId": "proj-blr-02",
+  "unit": "Percentage",
+  "series": [
+    { "week": "Week 1", "actual": 10.0, "planned": 12.0, "variance": -2.0 },
+    { "week": "Week 2", "actual": 24.0, "planned": 25.0, "variance": -1.0 },
+    { "week": "Week 3", "actual": 38.0, "planned": 40.0, "variance": -2.0 },
+    { "week": "Week 4", "actual": 48.0, "planned": 55.0, "variance": -7.0 },
+    { "week": "Week 5", "actual": 58.2, "planned": 72.0, "variance": -13.8 }
+  ],
+  "aggregateSummary": {
+    "totalInstalledVolume": "5,800 m³",
+    "totalPlannedVolume": "7,200 m³",
+    "currentProgressVariance": "-13.8%",
+    "remainingDaysEst": 45
+  }
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/progress/proj-blr-02" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        projectId: "proj-blr-02",
+        unit: "Percentage",
+        series: [
+          { week: "Week 1", actual: 10.0, planned: 12.0, variance: -2.0 },
+          { week: "Week 2", actual: 24.0, planned: 25.0, variance: -1.0 },
+          { week: "Week 3", actual: 38.0, planned: 40.0, variance: -2.0 },
+          { week: "Week 4", actual: 48.0, planned: 55.0, variance: -7.0 },
+          { week: "Week 5", actual: 58.2, planned: 72.0, variance: -13.8 }
+        ],
+        aggregateSummary: {
+          totalInstalledVolume: "5,800 m³",
+          totalPlannedVolume: "7,200 m³",
+          currentProgressVariance: "-13.8%",
+          remainingDaysEst: 45
+        }
+      }
+    },
+    {
+      id: "dashboard-delays",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/delays/{project_id}",
+      summary: "Predict schedule delays & identify bottlenecks",
+      description: "Applies risk predictive analytics model to identify active scheduling bottlenecks and trade disciplines responsible for structural lag.",
+      requiresAuth: true,
+      parameters: [
+        { name: "project_id", in: "path", type: "string", required: true, description: "Unique project identifier", defaultValue: "proj-blr-02" }
+      ],
+      successResponseSchema: `{
+  "projectId": "proj-blr-02",
+  "criticalPathStatus": "DELAY_RISK_DETECTED",
+  "baselineEndDate": "2026-10-31",
+  "predictedEndDate": "2026-11-18",
+  "totalDelayVarianceDays": 18,
+  "riskScore": 78,
+  "bottlenecks": [
+    { "trade": "Structural Concrete", "riskFactor": "High", "description": "Rebar spacing audit discrepancies on floor 3", "delayImpactDays": 12 }
+  ]
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/delays/proj-blr-02" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        projectId: "proj-blr-02",
+        criticalPathStatus: "DELAY_RISK_DETECTED",
+        baselineEndDate: "2026-10-31",
+        predictedEndDate: "2026-11-18",
+        totalDelayVarianceDays: 18,
+        riskScore: 78,
+        bottlenecks: [
+          { trade: "Structural Concrete", riskFactor: "High", description: "Rebar spacing audit discrepancies on floor 3.", delayImpactDays: 12 },
+          { trade: "MEP Enclosures", riskFactor: "Medium", description: "Conduit spatial clash with steel joists on floor 4.", delayImpactDays: 6 },
+          { trade: "Interior Drywalls", riskFactor: "Low", description: "Procurement delivery lags in customized partition frames.", delayImpactDays: 4 }
+        ]
+      }
+    },
+    {
+      id: "dashboard-productivity",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/productivity/{project_id}",
+      summary: "Calculate EVM metrics & labor productivity factors",
+      description: "Computes standard Earned Value Management (EVM) quotients including Schedule Performance Index (SPI), Cost Performance Index (CPI), and labor hour performance factors.",
+      requiresAuth: true,
+      parameters: [
+        { name: "project_id", in: "path", type: "string", required: true, description: "Unique project identifier", defaultValue: "proj-blr-02" }
+      ],
+      successResponseSchema: `{
+  "projectId": "proj-blr-02",
+  "earnedValue": 5820000,
+  "plannedValue": 7200000,
+  "actualCost": 6100000,
+  "schedulePerformanceIndex": 0.81,
+  "costPerformanceIndex": 0.95,
+  "laborPerformanceFactor": 0.88,
+  "chartSeries": [
+    { "week": "W1", "cpi": 0.98, "spi": 0.96 },
+    { "week": "W2", "cpi": 0.96, "spi": 0.95 }
+  ]
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/productivity/proj-blr-02" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        projectId: "proj-blr-02",
+        earnedValue: 5820000,
+        plannedValue: 7200000,
+        actualCost: 6100000,
+        schedulePerformanceIndex: 0.81,
+        costPerformanceIndex: 0.95,
+        laborPerformanceFactor: 0.88,
+        chartSeries: [
+          { week: "W1", cpi: 0.98, spi: 0.96 },
+          { week: "W2", cpi: 0.96, spi: 0.95 },
+          { week: "W3", cpi: 0.97, spi: 0.91 },
+          { week: "W4", cpi: 0.95, spi: 0.84 },
+          { week: "W5", cpi: 0.95, spi: 0.81 }
+        ]
+      }
+    },
+    {
+      id: "dashboard-trades",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/trades/{project_id}",
+      summary: "Fetch multi-disciplinary physical trades progress breakdown",
+      description: "Compares target baseline vs drone verified volumetric metrics across standard trades (Structural Concrete, MEP, Partitioning, Drywall, Glazing).",
+      requiresAuth: true,
+      parameters: [
+        { name: "project_id", in: "path", type: "string", required: true, description: "Unique project identifier", defaultValue: "proj-blr-02" },
+        { name: "buildingId", in: "query", type: "string", required: false, description: "Filter by specific block" }
+      ],
+      successResponseSchema: `{
+  "projectId": "proj-blr-02",
+  "trades": [
+    { "trade": "Structural Concrete", "installed": 1840, "total": 2450, "unit": "m³", "percent": 75.1, "status": "UNDER_CONSTRUCTION" }
+  ]
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/trades/proj-blr-02" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        projectId: "proj-blr-02",
+        trades: [
+          { trade: "Structural Concrete", installed: 1840, total: 2450, unit: "m³", percent: 75.1, status: "UNDER_CONSTRUCTION" },
+          { trade: "Steel Reinforcement", installed: 340, total: 450, unit: "Tons", percent: 75.5, status: "UNDER_CONSTRUCTION" },
+          { trade: "Masonry & Partitioning", installed: 1120, total: 2200, unit: "m²", percent: 50.9, status: "UNDER_CONSTRUCTION" },
+          { trade: "Electrical Conduits", installed: 4500, total: 8000, unit: "m", percent: 56.2, status: "UNDER_CONSTRUCTION" },
+          { trade: "HVAC Ductwork", installed: 120, total: 350, unit: "m", percent: 34.2, status: "DELAYED" },
+          { trade: "External Glazing", installed: 0, total: 1500, unit: "m²", percent: 0.0, status: "PLANNING" }
+        ]
+      }
+    },
+    {
+      id: "dashboard-activities",
+      category: "dashboard",
+      method: "GET",
+      path: "/api/v1/dashboard/activities/{project_id}",
+      summary: "Compile unified construction audit activity feed",
+      description: "Consolidates and returns a timeline of computer vision processing alerts, PDF report compilations, and automated warning notifications.",
+      requiresAuth: true,
+      parameters: [
+        { name: "project_id", in: "path", type: "string", required: true, description: "Unique project identifier", defaultValue: "proj-blr-02" }
+      ],
+      successResponseSchema: `{
+  "projectId": "proj-blr-02",
+  "activities": [
+    { "id": "act-1", "type": "AI_JOB", "title": "YOLO_VERIFICATION", "description": "Completed successfully on CUDA-Node", "timestamp": "2026-07-09T08:05:00Z", "status": "COMPLETED" }
+  ]
+}`,
+      errorResponses: [],
+      curlTemplate: `curl -X GET "https://fastapi.buildtrace.in/v1/api/v1/dashboard/activities/proj-blr-02" \\
+  -H "Authorization: Bearer <JWT_ACCESS_TOKEN>"`,
+      mockResponseData: {
+        projectId: "proj-blr-02",
+        activities: [
+          { id: "act-1", type: "AI_JOB", title: "AI Inspection: YOLO_VERIFICATION", description: "Completed. Photogrammetry orthomosaic 3D matching complete. Found 2 rebars missing on Floor 3.", timestamp: "2026-07-11T10:00:00Z", status: "COMPLETED" },
+          { id: "act-2", type: "NOTIFICATION", title: "Notification Dispatch: EMAIL", description: "Progress update triggered for Bangalore Tech Park. Delivered to sidduchitiki@gmail.com.", timestamp: "2026-07-11T09:30:00Z", status: "SENT" },
+          { id: "act-3", type: "REPORT", title: "Audit Document: Monthly Quality Audit", description: "PDF Compiled successfully with AI generated summaries.", timestamp: "2026-07-11T08:00:00Z", status: "READY" },
+          { id: "act-4", type: "NOTIFICATION", title: "Notification Dispatch: SMS", description: "Critical Delay Alert triggered. Delivered to +91 98765 43210.", timestamp: "2026-07-11T06:15:00Z", status: "SENT" }
+        ]
+      }
     }
   ];
 
@@ -896,6 +1271,7 @@ export default function RestApiDocumentation() {
             {[
               { id: "all", label: "All Spec Blocks" },
               { id: "auth", label: "Auth" },
+              { id: "dashboard", label: "Dashboard" },
               { id: "projects", label: "Projects" },
               { id: "buildings", label: "Blocks" },
               { id: "ai", label: "AI Process" },

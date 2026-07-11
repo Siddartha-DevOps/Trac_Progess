@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   FileText,
   Calendar,
@@ -7,8 +7,6 @@ import {
   Mail,
   Send,
   Sliders,
-  Database,
-  Cpu,
   BarChart3,
   TrendingUp,
   AlertTriangle,
@@ -31,10 +29,44 @@ import {
   Clock3,
   CloudLightning,
   TrendingDown,
-  Info
+  Info,
+  X,
+  Check,
+  Eye,
+  Settings
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from "recharts";
 
-// Initial Report Distribution Schedule Data
+// Import modular data structures and interfaces
+import {
+  DailyLog,
+  WeeklyMilestone,
+  MonthlyReraAudit,
+  DelayIncident,
+  TradePerformance,
+  DAILY_LOGS,
+  WEEKLY_MILESTONES,
+  MONTHLY_RERA_AUDITS,
+  DELAY_INCIDENTS,
+  TRADE_CONTRACTORS,
+  WEEKLY_PROGRESS_SCURVE,
+  MONTHLY_CASHFLOW_HISTORY,
+  triggerCsvDownload
+} from "./reportsData";
+
 interface ReportSchedule {
   id: string;
   reportType: string;
@@ -46,80 +78,170 @@ interface ReportSchedule {
 }
 
 export default function ReportingCenter() {
+  // Navigation Tabs
   const [activeSubTab, setActiveSubTab] = useState<
-    "daily" | "weekly" | "monthly" | "executive" | "client" | "delay" | "trade" | "productivity" | "scheduler" | "architecture"
-  >("executive");
+    "daily" | "weekly" | "monthly" | "delay" | "trade" | "scheduler" | "architecture"
+  >("daily");
 
-  // State for interactive elements
+  // Global Filters State
+  const [selectedBlock, setSelectedBlock] = useState<"All" | "Block A" | "Block B" | "Block C">("All");
+  const [selectedTrade, setSelectedTrade] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedShift, setSelectedShift] = useState<"All" | "Day" | "Night">("All");
+
+  // Export & Print States
   const [exportingType, setExportingType] = useState<"PDF" | "Excel" | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportSuccessMessage, setExportSuccessMessage] = useState("");
-  
-  const [emailInput, setEmailInput] = useState("sidduchitiki@gmail.com");
-  const [emailSending, setEmailSending] = useState(false);
-  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // New schedule form state
+  // Email distribution state
   const [schedules, setSchedules] = useState<ReportSchedule[]>([
-    { id: "sch-1", reportType: "Executive Dashboard Report", frequency: "Weekly", recipient: "sidduchitiki@gmail.com", format: "PDF", timeOfDay: "08:00 AM", active: true },
-    { id: "sch-2", reportType: "Daily Progress Report", frequency: "Daily", recipient: "site-leads@buildtrace.in", format: "Both", timeOfDay: "06:30 PM", active: true },
-    { id: "sch-3", reportType: "Productivity & Trade Performance", frequency: "Monthly", recipient: "directors@buildtrace.in", format: "Excel", timeOfDay: "09:00 AM", active: false }
+    { id: "sch-1", reportType: "Weekly Milestone Audit", frequency: "Weekly", recipient: "sidduchitiki@gmail.com", format: "PDF", timeOfDay: "08:00 AM", active: true },
+    { id: "sch-2", reportType: "Daily Shift Log", frequency: "Daily", recipient: "site-leads@buildtrace.in", format: "Both", timeOfDay: "06:30 PM", active: true },
+    { id: "sch-3", reportType: "Monthly RERA Audit", frequency: "Monthly", recipient: "directors@buildtrace.in", format: "Excel", timeOfDay: "09:00 AM", active: false }
   ]);
-  const [newRepType, setNewRepType] = useState("Daily Progress Report");
+  const [newRepType, setNewRepType] = useState("Daily Shift Log");
   const [newFreq, setNewFreq] = useState<"Daily" | "Weekly" | "Monthly">("Weekly");
   const [newRecipient, setNewRecipient] = useState("");
   const [newFormat, setNewFormat] = useState<"PDF" | "Excel" | "Both">("PDF");
   const [newTime, setNewTime] = useState("08:00 AM");
 
-  // Simulation parameters (connected to Bengaluru Whitefield context)
-  const projectInfo = {
-    name: "Bangalore Tech Park - Block B",
-    location: "Whitefield, Bengaluru",
-    overallProgress: 72.4,
-    elapsedWeeks: 12,
-    totalBudget: "₹18.5 Crores",
-    spi: 0.96,
-    cpi: 1.02,
-    safetyDays: 245,
-    criticalDelay: "3 days"
-  };
+  const [emailInput, setEmailInput] = useState("sidduchitiki@gmail.com");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
 
-  // Run mock export animation
-  const handleTriggerExport = (type: "PDF" | "Excel") => {
-    setExportingType(type);
+  // 1. FILTERING UTILITIES based on global state
+  const filteredDailyLogs = useMemo(() => {
+    return DAILY_LOGS.filter((log) => {
+      const matchBlock = selectedBlock === "All" || log.block === selectedBlock;
+      const matchShift = selectedShift === "All" || log.shift === selectedShift;
+      const matchTrade = selectedTrade === "All" || log.trade === selectedTrade;
+      const matchSearch =
+        searchQuery === "" ||
+        log.item.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.contractor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.id.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchBlock && matchShift && matchTrade && matchSearch;
+    });
+  }, [selectedBlock, selectedShift, selectedTrade, searchQuery]);
+
+  const filteredWeeklyMilestones = useMemo(() => {
+    return WEEKLY_MILESTONES.filter((ms) => {
+      const matchBlock = selectedBlock === "All" || ms.block === selectedBlock;
+      const matchSearch =
+        searchQuery === "" ||
+        ms.milestone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ms.subcontractor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ms.id.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchBlock && matchSearch;
+    });
+  }, [selectedBlock, searchQuery]);
+
+  const filteredReraAudits = useMemo(() => {
+    return MONTHLY_RERA_AUDITS.filter((audit) => {
+      const matchBlock = selectedBlock === "All" || audit.block === selectedBlock;
+      const matchSearch =
+        searchQuery === "" ||
+        audit.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        audit.clause.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        audit.auditor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        audit.remediation.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchBlock && matchSearch;
+    });
+  }, [selectedBlock, searchQuery]);
+
+  const filteredDelayIncidents = useMemo(() => {
+    return DELAY_INCIDENTS.filter((inc) => {
+      const matchBlock = selectedBlock === "All" || inc.block === selectedBlock;
+      const matchSearch =
+        searchQuery === "" ||
+        inc.incident.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.subcontractor.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchBlock && matchSearch;
+    });
+  }, [selectedBlock, searchQuery]);
+
+  const filteredTradePerformance = useMemo(() => {
+    return TRADE_CONTRACTORS.filter((trade) => {
+      const matchSearch =
+        searchQuery === "" ||
+        trade.contractor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        trade.trade.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchSearch;
+    });
+  }, [searchQuery]);
+
+  // Unique list of Trades for dropdown filters
+  const uniqueTrades = useMemo(() => {
+    const list = new Set(DAILY_LOGS.map((log) => log.trade));
+    return ["All", ...Array.from(list)];
+  }, []);
+
+  // 2. EXCEL CSV EXPORT TRIGGER
+  const handleExcelExport = () => {
+    setExportingType("Excel");
     setExportProgress(0);
     setExportSuccessMessage("");
-    
+
     const interval = setInterval(() => {
-      setExportProgress(prev => {
-        if (prev >= 100) {
+      setExportProgress((p) => {
+        if (p >= 100) {
           clearInterval(interval);
           setTimeout(() => {
             setExportingType(null);
-            setExportSuccessMessage(`Successfully compiled and exported: BTP_BlockB_${activeSubTab}_Report.${type.toLowerCase() === 'pdf' ? 'pdf' : 'xlsx'}`);
-          }, 600);
+            // Dynamic data CSV download based on subtab
+            if (activeSubTab === "daily") {
+              triggerCsvDownload(filteredDailyLogs, "Daily_Progress_Report");
+              setExportSuccessMessage("Successfully generated and downloaded Daily Progress Report CSV.");
+            } else if (activeSubTab === "weekly") {
+              triggerCsvDownload(filteredWeeklyMilestones, "Weekly_Milestones_Report");
+              setExportSuccessMessage("Successfully generated and downloaded Weekly Milestones CSV.");
+            } else if (activeSubTab === "monthly") {
+              triggerCsvDownload(filteredReraAudits, "Monthly_RERA_Audit_Report");
+              setExportSuccessMessage("Successfully generated and downloaded Monthly RERA Audit Checklist CSV.");
+            } else if (activeSubTab === "delay") {
+              triggerCsvDownload(filteredDelayIncidents, "Delay_Incidents_Report");
+              setExportSuccessMessage("Successfully generated and downloaded Delay Incidents Log CSV.");
+            } else if (activeSubTab === "trade") {
+              triggerCsvDownload(filteredTradePerformance, "Trade_Performance_Report");
+              setExportSuccessMessage("Successfully generated and downloaded Trade Performance CSV.");
+            } else {
+              triggerCsvDownload(schedules, "Automation_Schedules_Report");
+              setExportSuccessMessage("Successfully generated and downloaded Scheduled Automations CSV.");
+            }
+          }, 300);
           return 100;
         }
-        return prev + 10;
+        return p + 20;
       });
-    }, 120);
+    }, 60);
   };
 
-  // Run mock email transmission
-  const handleSendEmail = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput) return;
-    setEmailSending(true);
-    setEmailSuccess(false);
+  // 3. PDF EXPORT COMPILER
+  const handlePdfExport = () => {
+    setExportingType("PDF");
+    setExportProgress(0);
+    setExportSuccessMessage("");
 
-    setTimeout(() => {
-      setEmailSending(false);
-      setEmailSuccess(true);
-      setTimeout(() => setEmailSuccess(false), 4000);
-    }, 1500);
+    const interval = setInterval(() => {
+      setExportProgress((p) => {
+        if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setExportingType(null);
+            setShowPrintModal(true);
+          }, 300);
+          return 100;
+        }
+        return p + 20;
+      });
+    }, 60);
   };
 
-  // Add new schedule
+  // Automated Schedule Addition
   const handleAddSchedule = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRecipient) return;
@@ -136,195 +258,295 @@ export default function ReportingCenter() {
     setNewRecipient("");
   };
 
-  // Delete schedule
   const handleDeleteSchedule = (id: string) => {
-    setSchedules(schedules.filter(s => s.id !== id));
+    setSchedules(schedules.filter((s) => s.id !== id));
   };
 
-  // Toggle schedule status
   const handleToggleSchedule = (id: string) => {
-    setSchedules(schedules.map(s => s.id === id ? { ...s, active: !s.active } : s));
+    setSchedules(
+      schedules.map((s) => (s.id === id ? { ...s, active: !s.active } : s))
+    );
   };
+
+  // SMTP Tester
+  const handleSendEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput) return;
+    setEmailSending(true);
+    setEmailSuccess(false);
+
+    setTimeout(() => {
+      setEmailSending(false);
+      setEmailSuccess(true);
+      setTimeout(() => setEmailSuccess(false), 4000);
+    }, 1200);
+  };
+
+  // Chart Data Preparation
+  const dailyChartData = useMemo(() => {
+    // Aggregated concrete volume and manpower per Block for Daily Report
+    const aggregates: Record<string, { concrete: number; manpower: number }> = {
+      "Block A": { concrete: 0, manpower: 0 },
+      "Block B": { concrete: 0, manpower: 0 },
+      "Block C": { concrete: 0, manpower: 0 }
+    };
+    filteredDailyLogs.forEach((log) => {
+      if (log.trade === "Concrete") {
+        aggregates[log.block].concrete += log.quantityVal;
+      }
+      aggregates[log.block].manpower += log.manpower;
+    });
+    return Object.keys(aggregates).map((block) => ({
+      name: block,
+      "Concrete Poured (m³)": aggregates[block].concrete,
+      "Crew Members Onsite": aggregates[block].manpower
+    }));
+  }, [filteredDailyLogs]);
+
+  const delayChartData = useMemo(() => {
+    return filteredDelayIncidents.map((inc) => ({
+      code: inc.code,
+      "Critical Delay Impact (Days)": inc.floatImpact,
+      "Subcontractor Responsibility": inc.subcontractor
+    }));
+  }, [filteredDelayIncidents]);
+
+  const tradeChartData = useMemo(() => {
+    return filteredTradePerformance.map((t) => ({
+      contractor: t.contractor.split(" ")[0], // abbreviate
+      "Active Crew": t.activeCrew,
+      "Planned Crew": t.plannedCrew,
+      "Audit Score": t.auditScore
+    }));
+  }, [filteredTradePerformance]);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col w-full overflow-hidden text-slate-800">
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col w-full overflow-hidden text-slate-800" id="reporting-center-root">
       
-      {/* HEADER SECTION */}
-      <div className="bg-slate-900 text-white p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+      {/* HEADER SECTION - Enterprise styling */}
+      <div className="bg-slate-900 text-white p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-indigo-500/15 border border-indigo-500/25 rounded-lg text-indigo-400">
-              <FileText className="w-5 h-5" />
+            <span className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
+              <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
             </span>
-            <h2 className="text-xl font-bold tracking-tight">Reporting & Analytics Center</h2>
+            <h2 className="text-lg font-black uppercase tracking-wider text-slate-100">
+              BuildTrace progress report terminal
+            </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Generate and schedule comprehensive, RERA-compliant PDF and Excel reports using AI photogrammetry metrics and BIM IFC metadata.
+          <p className="text-xs text-slate-400">
+            Generate, filter, and schedule physical site audits, RERA milestones compliance indices, and BIM variances.
           </p>
         </div>
 
-        {/* Action Controls */}
+        {/* Global Export Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => handleTriggerExport("PDF")}
-            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 flex items-center gap-1.5 transition"
+            onClick={handlePdfExport}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 flex items-center gap-2 transition cursor-pointer"
+            title="Generate print-friendly PDF"
           >
-            <Printer className="w-3.5 h-3.5 text-indigo-400" />
-            Export PDF
+            <Printer className="w-4 h-4 text-indigo-400" />
+            <span>PDF Export</span>
           </button>
           <button
-            onClick={() => handleTriggerExport("Excel")}
-            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 flex items-center gap-1.5 transition"
+            onClick={handleExcelExport}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-700 rounded-lg text-xs font-bold text-white flex items-center gap-2 transition cursor-pointer"
+            title="Download Excel compatible CSV of filtered table"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-            Export Excel
+            <Download className="w-4 h-4 text-white" />
+            <span>Excel Export</span>
           </button>
         </div>
       </div>
 
-      {/* WORKSPACE LAYOUT (Sub Tabs Sidebar + Live Preview Area) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
-        
-        {/* SIDEBAR NAVIGATION (3 Columns) */}
-        <div className="lg:col-span-3 bg-slate-50 border-r border-slate-200 p-4 flex flex-col gap-4">
-          
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono block mb-2 px-1">
-              Dashboards & KPIs
-            </span>
-            <div className="flex flex-col gap-1">
+      {/* GLOBAL INTERACTIVE FILTER BAR */}
+      <div className="bg-slate-50 border-b border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Block Filter */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Spatial Block</span>
+          <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
+            {(["All", "Block A", "Block B", "Block C"] as const).map((block) => (
               <button
-                onClick={() => setActiveSubTab("executive")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
-                  activeSubTab === "executive"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                key={block}
+                onClick={() => setSelectedBlock(block)}
+                className={`flex-1 text-center py-1 text-[11px] font-bold rounded-md transition-all ${
+                  selectedBlock === block
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-indigo-500" />
-                  <span>Executive Dashboard</span>
-                </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                {block === "All" ? "All Blocks" : block}
               </button>
-
-              <button
-                onClick={() => setActiveSubTab("client")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
-                  activeSubTab === "client"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-500" />
-                  <span>Client Dashboard</span>
-                </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
-              </button>
-            </div>
+            ))}
           </div>
+        </div>
 
+        {/* Search Input */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Search Key Terms</span>
+          <div className="relative bg-white rounded-lg border border-slate-200">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter by contractor, guid..."
+              className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-transparent border-0 placeholder-slate-400 text-slate-700 focus:outline-none focus:ring-0"
+            />
+          </div>
+        </div>
+
+        {/* Trade Filter (Conditional/Universal) */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">BIM Construction Trade</span>
+          <select
+            value={selectedTrade}
+            onChange={(e) => setSelectedTrade(e.target.value)}
+            className="bg-white border border-slate-200 text-xs rounded-lg p-2 text-slate-700 font-semibold focus:outline-indigo-500"
+          >
+            <option value="All">All Trades</option>
+            {uniqueTrades.filter(t => t !== "All").map((trade) => (
+              <option key={trade} value={trade}>
+                {trade}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Status indicator overview */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-slate-400 font-bold uppercase font-mono tracking-wider">Active Workspace Indicators</span>
+          <div className="bg-slate-100 border border-slate-250 p-2 rounded-lg flex justify-between items-center text-[10.5px]">
+            <span className="text-slate-500 font-medium font-mono">Whitefield Phase 2</span>
+            <span className="bg-indigo-100 text-indigo-700 font-bold font-mono px-1.5 py-0.5 rounded uppercase text-[9px] border border-indigo-150">
+              KA-RERA Regulated
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* WORKSPACE LAYOUT: Side Subtabs Navigation + Live Screen Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[620px]">
+        
+        {/* SUBTABS SIDEBAR (3 Columns) */}
+        <aside className="lg:col-span-3 bg-slate-50/75 border-r border-slate-200 p-4 flex flex-col gap-4" aria-label="Report Sub-Tabs Selection">
+          
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono block mb-2 px-1">
               Standardized Reports
             </span>
             <div className="flex flex-col gap-1">
+              {/* Daily progress */}
               <button
-                onClick={() => setActiveSubTab("daily")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("daily");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "daily"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500" />
+                  <Calendar className="w-4 h-4 text-indigo-500" />
                   <span>Daily Progress Report</span>
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span className="bg-indigo-50 text-indigo-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">
+                  {filteredDailyLogs.length}
+                </span>
               </button>
 
+              {/* Weekly report */}
               <button
-                onClick={() => setActiveSubTab("weekly")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("weekly");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "weekly"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  <span>Weekly Report</span>
+                  <Clock className="w-4 h-4 text-indigo-500" />
+                  <span>Weekly Progress Report</span>
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span className="bg-emerald-50 text-emerald-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">
+                  {filteredWeeklyMilestones.length}
+                </span>
               </button>
 
+              {/* Monthly report */}
               <button
-                onClick={() => setActiveSubTab("monthly")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("monthly");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "monthly"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-slate-500" />
-                  <span>Monthly Milestone Report</span>
+                  <Building2 className="w-4 h-4 text-indigo-500" />
+                  <span>Monthly RERA Report</span>
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span className="bg-amber-50 text-amber-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">
+                  {filteredReraAudits.length}
+                </span>
               </button>
             </div>
           </div>
 
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono block mb-2 px-1">
-              Risk & Metrics Analytics
+              Risk & Audit Ledger
             </span>
             <div className="flex flex-col gap-1">
+              {/* Delay report */}
               <button
-                onClick={() => setActiveSubTab("delay")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("delay");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "delay"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-500" />
                   <span>Delay Incident Report</span>
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span className="bg-rose-50 text-rose-600 text-[9px] font-extrabold px-1.5 py-0.2 rounded">
+                  {filteredDelayIncidents.length}
+                </span>
               </button>
 
+              {/* Trade performance */}
               <button
-                onClick={() => setActiveSubTab("trade")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("trade");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "trade"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <UserCheck className="w-4 h-4 text-emerald-500" />
                   <span>Trade Performance Log</span>
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("productivity")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
-                  activeSubTab === "productivity"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-amber-500" />
-                  <span>Productivity Report</span>
-                </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span className="bg-slate-200 text-slate-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">
+                  {filteredTradePerformance.length}
+                </span>
               </button>
             </div>
           </div>
@@ -334,53 +556,61 @@ export default function ReportingCenter() {
               Distribution & Engine
             </span>
             <div className="flex flex-col gap-1">
+              {/* Scheduler */}
               <button
-                onClick={() => setActiveSubTab("scheduler")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("scheduler");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "scheduler"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-slate-500" />
-                  <span>Schedules & Emails</span>
+                  <span>Automated Schedules</span>
                 </div>
                 <span className="bg-indigo-100 text-indigo-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full font-mono">
                   {schedules.length}
                 </span>
               </button>
 
+              {/* Architecture specs */}
               <button
-                onClick={() => setActiveSubTab("architecture")}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition ${
+                onClick={() => {
+                  setActiveSubTab("architecture");
+                  setSearchQuery("");
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition border ${
                   activeSubTab === "architecture"
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-indigo-600 border-slate-250 shadow-sm"
+                    : "text-slate-600 border-transparent hover:bg-slate-100/50 hover:text-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <Workflow className="w-4 h-4 text-indigo-500" />
                   <span>Reporting Architecture</span>
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>
           </div>
 
-        </div>
+        </aside>
 
-        {/* LIVE CONTENT PREVIEW SPACE (9 Columns) */}
-        <div className="lg:col-span-9 p-6 flex flex-col gap-6 bg-slate-50/35 overflow-y-auto max-h-[800px]">
+        {/* MAIN PANEL AREA (9 Columns) */}
+        <main className="lg:col-span-9 p-6 bg-slate-50/20 flex flex-col gap-6 overflow-y-auto max-h-[820px] scrollbar-thin">
           
-          {/* Notifications and Overlays */}
+          {/* Ongoing Export status overlay */}
           {exportingType && (
-            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex items-center gap-4 animate-pulse">
+            <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 flex items-center gap-4 animate-pulse shadow-md">
               <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
               <div className="flex-1">
-                <span className="text-xs font-mono font-bold uppercase text-slate-400 block">Compiling Report Stream</span>
-                <span className="text-sm font-bold">Assembling {exportingType} from spatial schemas... {exportProgress}%</span>
-                <div className="w-full bg-slate-850 h-1.5 rounded-full mt-2 overflow-hidden">
+                <span className="text-[10px] font-mono font-bold uppercase text-slate-400 block">Compiling Report Stream</span>
+                <span className="text-xs font-bold">Assembling {exportingType} spreadsheet payload... {exportProgress}%</span>
+                <div className="w-full bg-slate-800 h-1 rounded-full mt-1.5 overflow-hidden">
                   <div style={{ width: `${exportProgress}%` }} className="bg-indigo-500 h-full transition-all duration-150" />
                 </div>
               </div>
@@ -391,671 +621,692 @@ export default function ReportingCenter() {
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-center justify-between text-xs animate-fade-in shadow-sm">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>{exportSuccessMessage}</span>
+                <span className="font-semibold">{exportSuccessMessage}</span>
               </div>
               <button
                 onClick={() => setExportSuccessMessage("")}
-                className="text-emerald-700 hover:text-emerald-900 font-bold"
+                className="text-emerald-700 hover:text-emerald-950 font-extrabold text-xs ml-4 cursor-pointer"
               >
                 Dismiss
               </button>
             </div>
           )}
 
-          {/* ========================================================
-              VIEW 1: EXECUTIVE DASHBOARD (High Level KPIs)
-              ======================================================== */}
-          {activeSubTab === "executive" && (
+          {/* ==========================================
+              SUBTAB 1: DAILY PROGRESS REPORT
+              ========================================== */}
+          {activeSubTab === "daily" && (
             <div className="flex flex-col gap-6 animate-fade-in">
-              <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+              {/* Daily Summary Header */}
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Executive Program Dashboard</h3>
-                  <p className="text-[11px] text-slate-500">Block B high-level indicators and investment governance summary.</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] bg-indigo-50 text-indigo-700 font-bold font-mono px-2 py-0.5 rounded uppercase">Shift Log</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Report: BTP-DR-4958</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 mt-1">Daily Construction Progress Statement</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Real-time daily outputs mapped from camera logs against architectural CAD baselines.</p>
                 </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded border border-slate-200 uppercase font-semibold">
-                  Nov 2026 Milestone Target
-                </span>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono font-bold text-slate-500">Filter Shift:</span>
+                  <div className="bg-white border border-slate-200 p-0.5 rounded-lg flex gap-1">
+                    {(["All", "Day", "Night"] as const).map((shift) => (
+                      <button
+                        key={shift}
+                        onClick={() => setSelectedShift(shift)}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                          selectedShift === shift ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"
+                        }`}
+                      >
+                        {shift}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Grid HUD KPIs */}
+              {/* Dynamic Stats HUD */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Program Progress</span>
-                  <span className="text-2xl font-black text-indigo-600 font-mono mt-1">{projectInfo.overallProgress}%</span>
-                  <span className="text-[9px] text-slate-500 font-semibold mt-1">72.1% Baseline target</span>
+                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Onsite Labor Strength</span>
+                  <span className="text-2xl font-black text-slate-900 font-mono mt-1">
+                    {filteredDailyLogs.reduce((acc, curr) => acc + curr.manpower, 0)} workers
+                  </span>
+                  <span className="text-[9.5px] text-indigo-600 font-semibold mt-1">Active across {new Set(filteredDailyLogs.map(l => l.block)).size} blocks</span>
                 </div>
-                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Schedule Index (SPI)</span>
-                  <span className="text-2xl font-black text-rose-500 font-mono mt-1">{projectInfo.spi}</span>
-                  <span className="text-[9px] text-rose-600 font-semibold mt-1">0.04 Under-performing</span>
+
+                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Total Volume Logs</span>
+                  <span className="text-2xl font-black text-indigo-600 font-mono mt-1">
+                    {filteredDailyLogs.length} items
+                  </span>
+                  <span className="text-[9.5px] text-slate-500 font-semibold mt-1">Filtered from shift registry</span>
                 </div>
-                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Cost Index (CPI)</span>
-                  <span className="text-2xl font-black text-emerald-600 font-mono mt-1">{projectInfo.cpi}</span>
-                  <span className="text-[9px] text-emerald-600 font-semibold mt-1">Under baseline budget</span>
+
+                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Completed Tasks</span>
+                  <span className="text-2xl font-black text-emerald-600 font-mono mt-1">
+                    {filteredDailyLogs.filter(l => l.status === "Completed").length} / {filteredDailyLogs.length}
+                  </span>
+                  <span className="text-[9.5px] text-emerald-600 font-bold font-mono mt-1">
+                    {filteredDailyLogs.length ? Math.round((filteredDailyLogs.filter(l => l.status === "Completed").length / filteredDailyLogs.length) * 100) : 0}% success rate
+                  </span>
                 </div>
-                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Critical Delay</span>
-                  <span className="text-2xl font-black text-amber-500 font-mono mt-1">{projectInfo.criticalDelay}</span>
-                  <span className="text-[9px] text-slate-500 font-semibold mt-1">Slab 1 Cast core path</span>
+
+                <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">Total Concrete Poured</span>
+                  <span className="text-2xl font-black text-amber-600 font-mono mt-1">
+                    {filteredDailyLogs.filter(l => l.trade === "Concrete").reduce((acc, curr) => acc + curr.quantityVal, 0).toFixed(1)} m³
+                  </span>
+                  <span className="text-[9.5px] text-slate-500 font-semibold mt-1">Ready-mix structural grade</span>
                 </div>
               </div>
 
-              {/* Progress vs Budget chart card */}
+              {/* Dynamic Recharts Visualization */}
               <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2">
-                  Budget Burndown vs Schedule Baseline Progress
+                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Daily Poured Volume & Active Crew distribution
+                  </h4>
+                  <span className="text-[10px] font-mono text-slate-400">Values aggregated by spatial block</span>
+                </div>
+                
+                <div className="h-56">
+                  {dailyChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} />
+                        <YAxis stroke="#94a3b8" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderRadius: "8px", color: "#fff", border: "1px solid #334155", fontSize: "11px" }} />
+                        <Legend wrapperStyle={{ fontSize: "10px", fontWeight: "600" }} />
+                        <Bar name="Concrete Poured (m³)" dataKey="Concrete Poured (m³)" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                        <Bar name="Crew Members Onsite" dataKey="Crew Members Onsite" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-xs italic">
+                      No logs matching filters to display chart data.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Dynamic Daily Table */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50/50">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtered Daily Task Log</span>
+                  <span className="text-[10px] font-mono text-slate-500">{filteredDailyLogs.length} items logged</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase font-mono text-[9px] bg-slate-50/40">
+                        <th className="p-3">Log ID & Date</th>
+                        <th className="p-3">Block / Shift</th>
+                        <th className="p-3">Trade</th>
+                        <th className="p-3">Work Item Summary</th>
+                        <th className="p-3">Quantity / Crew</th>
+                        <th className="p-3">Subcontractor</th>
+                        <th className="p-3">Variance Log</th>
+                        <th className="p-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDailyLogs.length > 0 ? (
+                        filteredDailyLogs.map((log) => (
+                          <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition font-sans">
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="font-bold text-slate-900 block font-mono">{log.id}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{log.date}</span>
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="font-semibold text-slate-800 block">{log.block}</span>
+                              <span className="text-[10px] text-slate-400">{log.shift} Shift</span>
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                {log.trade}
+                              </span>
+                            </td>
+                            <td className="p-3 font-medium text-slate-800 max-w-[180px] truncate" title={log.item}>
+                              {log.item}
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="font-bold text-slate-850 block">{log.quantity}</span>
+                              <span className="text-[10px] text-slate-400">{log.manpower} workers</span>
+                            </td>
+                            <td className="p-3 text-slate-600 whitespace-nowrap">{log.contractor}</td>
+                            <td className="p-3 font-mono text-[10.5px] text-indigo-600 font-bold">{log.variance}</td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                                log.status === "Completed"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-250"
+                                  : log.status === "Delayed"
+                                  ? "bg-rose-50 text-rose-700 border-rose-250"
+                                  : "bg-indigo-50 text-indigo-700 border-indigo-250 animate-pulse"
+                              }`}>
+                                {log.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-slate-400 italic">
+                            No daily shift records found matching your selected filters. Adjust your block or search criteria.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==========================================
+              SUBTAB 2: WEEKLY PROGRESS REPORT
+              ========================================== */}
+          {activeSubTab === "weekly" && (
+            <div className="flex flex-col gap-6 animate-fade-in">
+              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold font-mono px-2 py-0.5 rounded uppercase">Earned Value S-Curve</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Audit: BTP-WR-012</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 mt-1">Weekly Program Progress Ledger</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Physical progress analysis S-Curve and weekly milestone compliance metrics.</p>
+                </div>
+              </div>
+
+              {/* Weekly stats summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-indigo-950 text-white p-4 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-indigo-400 font-bold uppercase font-mono">Current Audit Week</span>
+                    <span className="text-2xl font-black block mt-1 font-mono">Week 12</span>
+                  </div>
+                  <span className="text-[10px] text-slate-300 mt-2">Physical photogrammetry cycle completed</span>
+                </div>
+
+                <div className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase font-mono">Cumulative Milestones</span>
+                    <span className="text-2xl font-black text-slate-950 block mt-1 font-mono">
+                      {filteredWeeklyMilestones.filter(m => m.status === "Achieved").length} / {filteredWeeklyMilestones.length}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    {Math.round((filteredWeeklyMilestones.filter(m => m.status === "Achieved").length / filteredWeeklyMilestones.length) * 100)}% compliance rating
+                  </span>
+                </div>
+
+                <div className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase font-mono">Critical Path Slippage</span>
+                    <span className="text-2xl font-black text-rose-600 block mt-1 font-mono">
+                      +{filteredWeeklyMilestones.filter(m => m.criticalPath && m.varianceDays > 0).reduce((acc, curr) => acc + curr.varianceDays, 0)} days
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-rose-500 font-bold">Over scheduled baseline milestones</span>
+                </div>
+              </div>
+
+              {/* Recharts Area S-Curve Progress Chart */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    BIM Schedule Baseline vs Actual Physical Progress S-Curve
+                  </h4>
+                  <span className="text-[10px] font-mono text-emerald-600 font-bold">Whitefield Block B • Week 1 to 12</span>
+                </div>
+
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={WEEKLY_PROGRESS_SCURVE} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="baselineColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="actualColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="week" stroke="#94a3b8" fontSize={9} />
+                      <YAxis stroke="#94a3b8" fontSize={9} unit="%" />
+                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderRadius: "8px", color: "#fff", border: "1px solid #334155" }} />
+                      <Legend wrapperStyle={{ fontSize: "10px", fontWeight: "600" }} />
+                      <Area type="monotone" name="Scheduled BIM Baseline %" dataKey="Scheduled BIM %" stroke="#818cf8" strokeWidth={2} fillOpacity={1} fill="url(#baselineColor)" />
+                      <Area type="monotone" name="Drone Photogrammetry Actual %" dataKey="Actual Drone %" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#actualColor)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Weekly Milestones Table */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50/50">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Weekly Milestones Status Table</span>
+                  <span className="text-[10px] font-mono text-slate-500">{filteredWeeklyMilestones.length} milestones tracked</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase font-mono text-[9px] bg-slate-50/40">
+                        <th className="p-3">Milestone Code</th>
+                        <th className="p-3">Block / Week</th>
+                        <th className="p-3">Milestone Description</th>
+                        <th className="p-3 font-center">Scheduled Target</th>
+                        <th className="p-3 font-center">Actual Verified</th>
+                        <th className="p-3">Assigned Subcontractor</th>
+                        <th className="p-3">RERA Critical Path</th>
+                        <th className="p-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredWeeklyMilestones.length > 0 ? (
+                        filteredWeeklyMilestones.map((ms) => (
+                          <tr key={ms.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition">
+                            <td className="p-3 whitespace-nowrap font-mono font-bold text-slate-900">{ms.id}</td>
+                            <td className="p-3 whitespace-nowrap text-slate-600">
+                              <span className="font-bold text-slate-800 block">{ms.block}</span>
+                              <span>Week {ms.week}</span>
+                            </td>
+                            <td className="p-3 font-medium text-slate-800 max-w-[200px] truncate" title={ms.milestone}>
+                              {ms.milestone}
+                            </td>
+                            <td className="p-3 font-mono text-slate-600 whitespace-nowrap">{ms.targetDate}</td>
+                            <td className="p-3 font-mono text-slate-600 whitespace-nowrap">
+                              {ms.actualDate || <span className="text-slate-400 italic">Pending</span>}
+                            </td>
+                            <td className="p-3 text-slate-600 whitespace-nowrap">{ms.subcontractor}</td>
+                            <td className="p-3">
+                              {ms.criticalPath ? (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-700 font-bold rounded font-mono text-[9px] uppercase border border-red-200">
+                                  Critical
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[9px] uppercase">
+                                  Standard
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                                ms.status === "Achieved"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : ms.status === "Delayed"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
+                                  : ms.status === "Active"
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                  : "bg-slate-100 text-slate-400 border-slate-200"
+                              }`}>
+                                {ms.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-slate-400 italic">
+                            No milestones matching search queries found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==========================================
+              SUBTAB 3: MONTHLY RERA AUDIT
+              ========================================== */}
+          {activeSubTab === "monthly" && (
+            <div className="flex flex-col gap-6 animate-fade-in">
+              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] bg-amber-50 text-amber-700 font-bold font-mono px-2 py-0.5 rounded uppercase">RERA Compliance</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Registry: BTP-MR-2026-07</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 mt-1">Monthly Milestone & RERA Audit</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Verification checklist and statutory disclosures as per Karnataka RERA Act parameters.</p>
+                </div>
+              </div>
+
+              {/* Cashflow Burndown Summary */}
+              <div className="bg-slate-900 text-white rounded-xl p-5 border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+                <div className="space-y-1 relative z-10">
+                  <span className="text-[9px] text-indigo-400 font-mono font-bold uppercase tracking-wider block">Aggregate Project Cashflow Billing</span>
+                  <span className="text-2xl font-black block font-mono text-indigo-300">₹12.8 Crores Drawdown</span>
+                  <p className="text-[10.5px] text-slate-400">Audited against physical orthomosaic volume calculations.</p>
+                </div>
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 relative z-10 text-[11px] font-mono text-right min-w-[200px]">
+                  <span className="text-slate-500 block text-[10px]">KA-RERA Baseline Release:</span>
+                  <span className="font-extrabold text-emerald-400 text-sm">₹13.3 Cr Budget Target</span>
+                </div>
+              </div>
+
+              {/* Monthly compliance S-Curve chart */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2">
+                  Billing Drawdown and RERA Compliance score index
                 </h4>
                 
-                {/* Visual SVG chart to represent baseline progress curve vs actual */}
-                <div className="h-44 relative bg-slate-50/50 rounded-lg p-2 flex flex-col justify-between border border-slate-100">
-                  <svg className="w-full h-full absolute inset-0 text-indigo-100" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    {/* Baseline path */}
-                    <path d="M0 90 L20 80 L40 60 L60 40 L80 20 L100 5" fill="none" stroke="#6366f1" strokeWidth="2" strokeDasharray="3,3" />
-                    {/* Actual progress path */}
-                    <path d="M0 90 L20 82 L40 65 L60 44 L72 35" fill="none" stroke="#4f46e5" strokeWidth="3" />
-                    {/* Actual path points */}
-                    <circle cx="20" cy="82" r="2" fill="#4f46e5" />
-                    <circle cx="40" cy="65" r="2" fill="#4f46e5" />
-                    <circle cx="60" cy="44" r="2" fill="#4f46e5" />
-                    <circle cx="72" cy="35" r="3" fill="#6366f1" />
-                  </svg>
-
-                  {/* Chart legends */}
-                  <div className="z-10 flex justify-between items-start text-[10px] text-slate-400 font-mono">
-                    <span>Q1 2026</span>
-                    <span>Q2 2026 (Elapsed)</span>
-                    <span>Q3 2026</span>
-                    <span>Q4 2026 (Target)</span>
-                  </div>
-
-                  <div className="z-10 flex justify-end gap-4 text-[10px] font-mono font-semibold">
-                    <div className="flex items-center gap-1">
-                      <span className="w-2.5 h-0.5 bg-indigo-500 border border-dashed border-indigo-500" />
-                      <span className="text-slate-500">Planned (IFC4)</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-2.5 h-0.5 bg-indigo-600" />
-                      <span className="text-slate-900">Actual (BuildTrace CV)</span>
-                    </div>
-                  </div>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={MONTHLY_CASHFLOW_HISTORY} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={9} />
+                      <YAxis stroke="#94a3b8" fontSize={9} />
+                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderRadius: "8px", color: "#fff", border: "1px solid #334155" }} />
+                      <Legend wrapperStyle={{ fontSize: "10px", fontWeight: "600" }} />
+                      <Line type="monotone" name="Planned Drawdown (Crores)" dataKey="Planned (Crores)" stroke="#94a3b8" strokeWidth={2} strokeDasharray="4 4" />
+                      <Line type="monotone" name="Actual Drawdown (Crores)" dataKey="Actual (Crores)" stroke="#4f46e5" strokeWidth={3} />
+                      <Line type="monotone" name="KA-RERA Compliance Index" dataKey="RERA Index" stroke="#10b981" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Program Level Critical Risk Alerts */}
-              <div className="bg-slate-900 text-white p-5 rounded-xl border border-slate-800 flex flex-col gap-3">
-                <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-rose-500 animate-pulse" />
-                  Executive Program Interventions Needed
-                </span>
-
-                <div className="flex flex-col gap-2 text-xs">
-                  <div className="bg-slate-850 p-2.5 rounded border border-slate-800 flex justify-between items-center">
-                    <div>
-                      <span className="font-bold text-slate-300">Whitefield Steel Supply Shortage Alert</span>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Rebar procurement delays of structural steel Grade Fe 550D.</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-900 uppercase font-mono font-bold">
-                      Critical Path
-                    </span>
-                  </div>
-
-                  <div className="bg-slate-850 p-2.5 rounded border border-slate-800 flex justify-between items-center">
-                    <div>
-                      <span className="font-bold text-slate-300">RERA Schedule Variance Notice</span>
-                      <p className="text-[11px] text-slate-500 mt-0.5">L1 structure is currently trending 3 days behind our registered KA-RERA baseline.</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-amber-950 text-amber-300 border border-amber-900 uppercase font-mono font-bold">
-                      Medium Alert
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ========================================================
-              VIEW 2: CLIENT DASHBOARD (Simplified Status)
-              ======================================================== */}
-          {activeSubTab === "client" && (
-            <div className="flex flex-col gap-6 animate-fade-in text-xs">
-              <div className="border-b border-slate-200 pb-3">
-                <h3 className="text-base font-black text-slate-900">Client Transparency Dashboard</h3>
-                <p className="text-[11px] text-slate-500">Accessible project progress metrics for Whitefield block buyers and investors.</p>
-              </div>
-
-              {/* Greeting Header */}
-              <div className="bg-indigo-900 text-white p-5 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h4 className="font-bold text-sm">Dear Investor / Client</h4>
-                  <p className="text-indigo-200 text-[11px] mt-1 max-w-md leading-relaxed">
-                    Welcome to your BuildTrace progress dashboard. Below you will find simplified, verified site tracking data synchronised directly from our drone camera scans.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-indigo-300 font-mono font-bold block uppercase">Verified RERA Status</span>
-                  <span className="text-lg font-black font-mono">KA-RERA COMPLIANT</span>
-                </div>
-              </div>
-
-              {/* Client Timeline HUD */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col gap-2">
-                  <span className="text-[10px] text-slate-400 font-black uppercase font-mono">Concrete Shell Stage</span>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-700">Level 1 Slab Cast</span>
-                    <span className="text-emerald-600 font-bold font-mono">Completed</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full w-full" />
-                  </div>
+              {/* RERA table checklist */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50/50">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">RERA Statutory Disclosures Audits</span>
+                  <span className="text-[10px] font-mono text-slate-500">{filteredReraAudits.length} clauses audited</span>
                 </div>
 
-                <div className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col gap-2">
-                  <span className="text-[10px] text-slate-400 font-black uppercase font-mono">MEP Services Stage</span>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-700">Floor Conduit Mains</span>
-                    <span className="text-indigo-600 font-bold font-mono">75% Complete</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                    <div className="bg-indigo-500 h-full w-3/4" />
-                  </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col gap-2">
-                  <span className="text-[10px] text-slate-400 font-black uppercase font-mono">Masonry & Framing Stage</span>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-700">Internal Drywalls</span>
-                    <span className="text-slate-400 font-bold font-mono">Pending Structure</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                    <div className="bg-slate-300 h-full w-0" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3D Sync Verification Gallery */}
-              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-3">
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Verified Photogrammetry Proof Stream
-                </span>
-                <p className="text-slate-500 text-[11px]">
-                  Actual site imagery compared directly against the BIM design schema to ensure transparency.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
-                  <div className="bg-slate-50 p-2 border border-slate-100 rounded-lg">
-                    <div className="aspect-video bg-slate-900 rounded flex items-center justify-center text-slate-500 text-[10px] font-mono relative overflow-hidden">
-                      <span className="absolute left-2 top-2 bg-slate-950/80 text-[8px] text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold">
-                        BIM Design Projection
-                      </span>
-                      <Building2 className="w-8 h-8 text-indigo-500/20" />
-                      <span className="absolute bottom-2 text-[9px] text-slate-400">Column C4 Wireframe CAD Overlay</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 p-2 border border-slate-100 rounded-lg">
-                    <div className="aspect-video bg-slate-900 rounded flex items-center justify-center text-slate-500 text-[10px] font-mono relative overflow-hidden">
-                      <span className="absolute left-2 top-2 bg-indigo-600 text-[8px] text-white px-1.5 py-0.5 rounded uppercase font-bold">
-                        Drone Capture Week 3
-                      </span>
-                      <CloudLightning className="w-8 h-8 text-amber-500/20" />
-                      <span className="absolute bottom-2 text-[9px] text-slate-400">YOLO-v8 Instance Seg. Photo Overlay</span>
-                    </div>
-                  </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase font-mono text-[9px] bg-slate-50/40">
+                        <th className="p-3">Audit ID</th>
+                        <th className="p-3">RERA Statutory Clause</th>
+                        <th className="p-3">Scope / Subject Area</th>
+                        <th className="p-3 text-center">Score</th>
+                        <th className="p-3">Assigned Auditor</th>
+                        <th className="p-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredReraAudits.length > 0 ? (
+                        filteredReraAudits.map((audit) => (
+                          <tr key={audit.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition">
+                            <td className="p-3 whitespace-nowrap font-mono font-bold text-slate-900">{audit.id}</td>
+                            <td className="p-3 text-indigo-700 font-mono font-bold max-w-[150px] truncate" title={audit.clause}>
+                              {audit.clause}
+                            </td>
+                            <td className="p-3 font-sans">
+                              <span className="font-extrabold text-slate-850 block">{audit.subject}</span>
+                              <span className="text-[10px] text-slate-400 italic block mt-0.5">Remediation: "{audit.remediation}"</span>
+                            </td>
+                            <td className="p-3 text-center font-mono font-bold text-slate-800 text-xs">
+                              <span className={`px-1.5 py-0.5 rounded ${
+                                audit.score >= 90 ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800 font-black animate-pulse"
+                              }`}>
+                                {audit.score}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-600 whitespace-nowrap">{audit.auditor}</td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                                audit.status === "Compliant"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : audit.status === "Critical Variance"
+                                  ? "bg-red-50 text-red-700 border-red-200 animate-pulse"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                              }`}>
+                                {audit.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-slate-400 italic">
+                            No RERA records matching selected filters found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
             </div>
           )}
 
-          {/* ========================================================
-              VIEW 3: DAILY PROGRESS REPORT
-              ======================================================== */}
-          {activeSubTab === "daily" && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 animate-fade-in text-xs">
-              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider font-mono">Shift Log: Daily</span>
-                  <h3 className="text-base font-black text-slate-900 mt-0.5">Daily Progress Report</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Shift: Day Shift | Date: 2026-07-09</p>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-400">
-                  <span>Report ID: BTP-DR-4958</span>
-                </div>
-              </div>
-
-              {/* Day Quick Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Weather Constraint</span>
-                  <span className="font-bold text-slate-700 block mt-1">Light Wet Rain / Intermittent</span>
-                  <span className="text-[10px] text-slate-500">26°C | Winds 14 km/h</span>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Labor Headcount On Site</span>
-                  <span className="font-bold text-slate-700 block mt-1">44 active workers</span>
-                  <span className="text-[10px] text-rose-500 font-semibold">Shortage of 6 crew members</span>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Safety Metrics</span>
-                  <span className="font-bold text-emerald-700 block mt-1">0 Incidents / Perfect compliance</span>
-                  <span className="text-[10px] text-slate-500">PPE check 100% compliant</span>
-                </div>
-              </div>
-
-              {/* Daily Quantities Installed */}
-              <div className="flex flex-col gap-2">
-                <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">
-                  Material Quantities Poured & Installed (Today)
-                </span>
-                
-                <div className="bg-slate-50 rounded-lg p-3 border border-slate-150 flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-[11px] font-mono border-b border-slate-200 pb-1.5">
-                    <span className="font-bold text-slate-600">Material Type</span>
-                    <span className="font-bold text-slate-600">Quantity Poured</span>
-                    <span className="font-bold text-slate-600">BIM Variance</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[11px] font-mono text-slate-700">
-                    <span>M35 Ready Mix Concrete (L1 Shear Walls)</span>
-                    <span className="font-bold">45.0 m³</span>
-                    <span className="text-emerald-600 font-bold">+1.5 m³ (Ahead)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[11px] font-mono text-slate-700">
-                    <span>Galvanized Steel Conduit (MEP service runs)</span>
-                    <span className="font-bold">120.0 running meters</span>
-                    <span className="text-slate-400">0.0 (On track)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[11px] font-mono text-slate-700">
-                    <span>Double Glazed Curtain Wall Units (Exterior)</span>
-                    <span className="font-bold">0 units</span>
-                    <span className="text-rose-500 font-bold">-4 units (Delayed)</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ========================================================
-              VIEW 4: WEEKLY REPORT
-              ======================================================== */}
-          {activeSubTab === "weekly" && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 animate-fade-in text-xs">
-              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider font-mono">Weekly Program Audit</span>
-                  <h3 className="text-base font-black text-slate-900 mt-0.5">Weekly Progress Report</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Week 12 | Date Range: July 02 - July 09, 2026</p>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-400">
-                  <span>Report ID: BTP-WR-012</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex flex-col gap-2">
-                  <span className="text-[10px] text-indigo-400 font-bold uppercase font-mono">Cumulative Weekly Variance</span>
-                  <span className="text-xl font-bold text-indigo-900 leading-tight">3 Days Behindregistered RERA Timeline</span>
-                  <p className="text-slate-600 text-[11px]">
-                    Although rainfall impacted exterior glazing installation, core concrete horizontal cast works regained 1.5 days due to second-shift overtime deployment.
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-2">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase font-mono">Subcontractor Coordination Status</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-slate-700">88.5% Aligned</span>
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-[9px] font-bold rounded">Optimal</span>
-                  </div>
-                  <p className="text-slate-500 text-[11px]">
-                    Central coordination index remains resilient. Clash solver resolved structural conflicts prior to installation handover.
-                  </p>
-                </div>
-              </div>
-
-              {/* Weekly milestone outcomes */}
-              <div className="flex flex-col gap-2.5">
-                <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">
-                  Weekly Milestone Breakdown
-                </span>
-
-                <div className="flex flex-col gap-2">
-                  <div className="p-2.5 bg-slate-50 rounded border border-slate-100 flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-emerald-500 rounded-full" />
-                      <span className="font-bold text-slate-700">Slab cast Level 1 Area A</span>
-                    </div>
-                    <span className="font-mono text-slate-500">Achieved: July 05</span>
-                  </div>
-
-                  <div className="p-2.5 bg-slate-50 rounded border border-slate-100 flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                      <span className="font-bold text-slate-700">MEP conduit containment routing L1 Zone B</span>
-                    </div>
-                    <span className="font-mono text-amber-600 font-semibold">Active In Progress</span>
-                  </div>
-
-                  <div className="p-2.5 bg-slate-50 rounded border border-slate-100 flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full" />
-                      <span className="font-bold text-slate-400">Glazing unit installation L1 West Façade</span>
-                    </div>
-                    <span className="font-mono text-rose-500 font-semibold">Postponed (Storm warning)</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ========================================================
-              VIEW 5: MONTHLY REPORT
-              ======================================================== */}
-          {activeSubTab === "monthly" && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 animate-fade-in text-xs">
-              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider font-mono">Monthly Program Ledger</span>
-                  <h3 className="text-base font-black text-slate-900 mt-0.5">Monthly Milestone & Financial Report</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Month: July 2026 | Financial Year: FY 2026-27</p>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-400">
-                  <span>Report ID: BTP-MR-2026-07</span>
-                </div>
-              </div>
-
-              {/* Financial billing Drawdown summary */}
-              <div className="bg-indigo-950 text-white p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <span className="text-[9px] text-indigo-400 font-mono font-bold uppercase">Monthly Cashflow billing Drawdown</span>
-                  <span className="text-2xl font-black font-mono block text-white mt-1">₹1.45 Crores</span>
-                  <span className="text-[10px] text-slate-400">Audited against physical spatial volume verification</span>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 p-2 rounded text-[11px] font-mono">
-                  <span className="text-slate-500 block">Total Project Billing to Date:</span>
-                  <span className="font-bold text-emerald-400">₹13.3 Crores / ₹18.5 Crores</span>
-                </div>
-              </div>
-
-              {/* RERA Milestone Alignment */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3">
-                <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider font-mono">
-                  RERA Legal Compliance & Milestone Alignment
-                </span>
-
-                <div className="flex flex-col gap-2.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-700">Overall Foundation Works</span>
-                    <span className="text-emerald-600 font-bold">100% Certified</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full w-full" />
-                  </div>
-
-                  <div className="flex justify-between items-center text-xs mt-1">
-                    <span className="font-bold text-slate-700">L1 - L4 Structural Frame Extrusion</span>
-                    <span className="text-indigo-600 font-bold">68% Complete</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-indigo-500 h-full w-2/3" />
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ========================================================
-              VIEW 6: DELAY INCIDENT REPORT
-              ======================================================== */}
+          {/* ==========================================
+              SUBTAB 4: DELAY INCIDENT REPORT
+              ========================================== */}
           {activeSubTab === "delay" && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 animate-fade-in text-xs">
+            <div className="flex flex-col gap-6 animate-fade-in">
               <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                 <div>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider font-mono">Incident Registry</span>
-                  <h3 className="text-base font-black text-slate-900 mt-0.5">Active Delay Report</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Incident diagnostics, calculated critical float impact, and mitigations.</p>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-400">
-                  <span>Report ID: BTP-DL-008</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] bg-red-50 text-red-700 font-bold font-mono px-2 py-0.5 rounded uppercase">Delay Logs</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Registry: BTP-DL-008</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 mt-1">Delay Incident Diagnostics Statement</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Active schedule deviations, critical float calculations, and subcontractor mitigation logs.</p>
                 </div>
               </div>
 
-              {/* Table list of delay incidents */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse font-mono">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-500 uppercase font-mono text-[9px] pb-2">
-                      <th className="pb-2">Incident / Code</th>
-                      <th className="pb-2">Root Cause</th>
-                      <th className="pb-2 text-center">Delay Impact</th>
-                      <th className="pb-2">Mitigation Action Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition">
-                      <td className="py-2.5">
-                        <span className="font-bold text-slate-900 block text-xs">Rebar Spacing Discrepancy</span>
-                        <span className="text-[10px] text-slate-400">#INC-REBAR-04</span>
-                      </td>
-                      <td className="py-2.5 text-slate-600 text-[11px]">Sub-contractor structural draw misinterpret.</td>
-                      <td className="py-2.5 text-center text-rose-600 font-bold">+2.5 Days</td>
-                      <td className="py-2.5">
-                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-bold uppercase text-[9px]">
-                          Mitigation Active
-                        </span>
-                      </td>
-                    </tr>
+              {/* Delay Chart */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2">
+                  Calculated float impact in days per incident code
+                </h4>
 
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition">
-                      <td className="py-2.5">
-                        <span className="font-bold text-slate-900 block text-xs">HVAC Branch Duct Collision</span>
-                        <span className="text-[10px] text-slate-400">#INC-MEP-09</span>
-                      </td>
-                      <td className="py-2.5 text-slate-600 text-[11px]">MEP 3D spatial collision with sprinkler pipe.</td>
-                      <td className="py-2.5 text-center text-rose-600 font-bold">+1.5 Days</td>
-                      <td className="py-2.5">
-                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-bold uppercase text-[9px]">
-                          Resolved in BIM
-                        </span>
-                      </td>
-                    </tr>
+                <div className="h-44">
+                  {delayChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart layout="vertical" data={delayChartData} margin={{ top: 5, right: 10, left: 30, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis type="number" stroke="#94a3b8" fontSize={9} label={{ value: 'Days of float delay', position: 'insideBottom', offset: -5, fontSize: 9 }} />
+                        <YAxis type="category" dataKey="code" stroke="#94a3b8" fontSize={9} />
+                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", color: "#fff", borderRadius: "8px" }} />
+                        <Bar name="Float Delay (Days)" dataKey="Critical Delay Impact (Days)" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-slate-400 italic text-xs">
+                      No logs to display chart.
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition">
-                      <td className="py-2.5">
-                        <span className="font-bold text-slate-900 block text-xs">Storm/Rain Outage L1 Core</span>
-                        <span className="text-[10px] text-slate-400">#INC-WTH-02</span>
-                      </td>
-                      <td className="py-2.5 text-slate-600 text-[11px]">Safety lockout during severe wind alert.</td>
-                      <td className="py-2.5 text-center text-rose-600 font-bold">+4.0 Days</td>
-                      <td className="py-2.5">
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-500 border border-slate-200 rounded font-bold uppercase text-[9px]">
-                          Monitored
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              {/* Delay Table */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50/50">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Active Incident Registry Table</span>
+                  <span className="text-[10px] font-mono text-slate-500">{filteredDelayIncidents.length} incidents logged</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase font-mono text-[9px] bg-slate-50/40">
+                        <th className="p-3">Incident Code</th>
+                        <th className="p-3">Date Mapped</th>
+                        <th className="p-3">Location Block</th>
+                        <th className="p-3">Incident Deviation Summary</th>
+                        <th className="p-3">Category</th>
+                        <th className="p-3 text-center">Float Delay</th>
+                        <th className="p-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDelayIncidents.length > 0 ? (
+                        filteredDelayIncidents.map((inc) => (
+                          <tr key={inc.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition">
+                            <td className="p-3 whitespace-nowrap font-mono font-bold text-slate-900">{inc.code}</td>
+                            <td className="p-3 whitespace-nowrap font-mono text-slate-500">{inc.date}</td>
+                            <td className="p-3 whitespace-nowrap font-bold text-slate-800">{inc.block}</td>
+                            <td className="p-3 font-medium text-slate-800 max-w-[220px]">
+                              <span className="block">{inc.incident}</span>
+                              <span className="text-[10px] text-slate-400 block mt-0.5">By: {inc.subcontractor}</span>
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="px-1.5 py-0.5 bg-slate-150 text-slate-600 rounded text-[9.5px] font-semibold">
+                                {inc.category}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center font-mono font-extrabold text-rose-600 text-xs whitespace-nowrap">
+                              +{inc.floatImpact.toFixed(1)} Days
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                                inc.status === "Mitigated"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : inc.status === "Active Remediation"
+                                  ? "bg-rose-50 text-rose-700 border-rose-250 animate-pulse"
+                                  : "bg-slate-100 text-slate-500 border-slate-200"
+                              }`}>
+                                {inc.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center text-slate-400 italic">
+                            No delay incidents match selected parameters.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
             </div>
           )}
 
-          {/* ========================================================
-              VIEW 7: TRADE PERFORMANCE LOG
-              ======================================================== */}
+          {/* ==========================================
+              SUBTAB 5: TRADE PERFORMANCE LOG
+              ========================================== */}
           {activeSubTab === "trade" && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 animate-fade-in text-xs">
+            <div className="flex flex-col gap-6 animate-fade-in">
               <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                 <div>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider font-mono">Contractor Audits</span>
-                  <h3 className="text-base font-black text-slate-900 mt-0.5">Trade Performance Report</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Assessment of sub-contractor headcounts, schedule compliance, and safety ratings.</p>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-400">
-                  <span>Report ID: BTP-TP-048</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] bg-slate-100 text-slate-700 font-bold font-mono px-2 py-0.5 rounded uppercase">Subcontractors</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Registry: BTP-TP-048</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 mt-1">Contractor Trade Performance Matrix</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Evaluation of active headcounts, safety compliance index, and weekly audit rankings.</p>
                 </div>
               </div>
 
-              {/* Subcontractor Cards Leaderboard */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-2.5">
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-2">
-                    <div>
-                      <span className="font-bold text-slate-800 text-xs">Vajra Concrete Corp.</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">Concrete & Structural Shell works</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 font-mono text-[9px] font-bold rounded-full">
-                      Primary Trade
-                    </span>
-                  </div>
+              {/* Trade Chart */}
+              <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2">
+                  Subcontractor Crew strength: Active vs Planned Allocation
+                </h4>
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
-                    <div>Crew strength: <strong className="text-slate-800">18/20</strong></div>
-                    <div>Schedule sync: <strong className="text-slate-800">92%</strong></div>
-                    <div>Incident rate: <strong className="text-emerald-600">0.0</strong></div>
-                    <div>Audit Rating: <strong className="text-indigo-600">4.8/5.0</strong></div>
-                  </div>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tradeChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="contractor" stroke="#94a3b8" fontSize={9} />
+                      <YAxis stroke="#94a3b8" fontSize={9} />
+                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", color: "#fff", borderRadius: "8px" }} />
+                      <Legend wrapperStyle={{ fontSize: "10px", fontWeight: "600" }} />
+                      <Bar name="Active Onsite Crew" dataKey="Active Crew" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                      <Bar name="Planned Baseline Crew" dataKey="Planned Crew" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Trade Table */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-150 flex justify-between items-center bg-slate-50/50">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Subcontractor Audits Ledger</span>
+                  <span className="text-[10px] font-mono text-slate-500">{filteredTradePerformance.length} contractors active</span>
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-2.5">
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-2">
-                    <div>
-                      <span className="font-bold text-slate-800 text-xs">Sterling MEP Projects</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">Electrical, Fire & HVAC Piping</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-[9px] font-bold rounded-full">
-                      Primary Trade
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
-                    <div>Crew strength: <strong className="text-slate-800">14/14</strong></div>
-                    <div>Schedule sync: <strong className="text-slate-800">96%</strong></div>
-                    <div>Incident rate: <strong className="text-emerald-600">0.0</strong></div>
-                    <div>Audit Rating: <strong className="text-indigo-600">4.9/5.0</strong></div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-2.5">
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-2">
-                    <div>
-                      <span className="font-bold text-slate-800 text-xs">Falcon Architectural Exterior</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">Glazing, cladding & exterior paint</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-mono text-[9px] font-bold rounded-full">
-                      Struggling
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
-                    <div>Crew strength: <strong className="text-slate-800">6/10</strong></div>
-                    <div>Schedule sync: <strong className="text-rose-600 font-bold">54%</strong></div>
-                    <div>Incident rate: <strong className="text-emerald-600">0.0</strong></div>
-                    <div>Audit Rating: <strong className="text-rose-600 font-bold">3.2/5.0</strong></div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-2.5">
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-2">
-                    <div>
-                      <span className="font-bold text-slate-800 text-xs">Apex Interiors & Finishes</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">Drywall, framing, tiling</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-slate-100 text-slate-500 font-mono text-[9px] font-bold rounded-full">
-                      Not Started
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
-                    <div>Crew strength: <strong className="text-slate-800">0/0</strong></div>
-                    <div>Schedule sync: <strong className="text-slate-400">0%</strong></div>
-                    <div>Incident rate: <strong className="text-slate-400">0.0</strong></div>
-                    <div>Audit Rating: <strong className="text-slate-400">N/A</strong></div>
-                  </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase font-mono text-[9px] bg-slate-50/40">
+                        <th className="p-3">Trade Specialist</th>
+                        <th className="p-3">Contractor Name</th>
+                        <th className="p-3 text-center">Crew Allocation</th>
+                        <th className="p-3 text-center">Schedule Compliance</th>
+                        <th className="p-3 text-center">Safety Rating</th>
+                        <th className="p-3 text-center">Audit Score</th>
+                        <th className="p-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTradePerformance.length > 0 ? (
+                        filteredTradePerformance.map((t) => (
+                          <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition">
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">
+                                {t.trade}
+                              </span>
+                            </td>
+                            <td className="p-3 font-extrabold text-slate-900 whitespace-nowrap">{t.contractor}</td>
+                            <td className="p-3 text-center font-mono text-slate-700 whitespace-nowrap">
+                              <strong>{t.activeCrew}</strong> / {t.plannedCrew}
+                            </td>
+                            <td className="p-3 text-center font-mono font-bold text-slate-800 whitespace-nowrap">
+                              {t.complianceRate}%
+                            </td>
+                            <td className="p-3 text-center font-mono text-amber-600 font-bold whitespace-nowrap">
+                              ★ {t.safetyRating.toFixed(1)} / 5.0
+                            </td>
+                            <td className="p-3 text-center font-mono text-indigo-600 font-extrabold text-xs whitespace-nowrap">
+                              {t.auditScore} / 100
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                                t.status === "Optimal"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : t.status === "Critical"
+                                  ? "bg-red-50 text-red-700 border-red-200 animate-pulse"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                              }`}>
+                                {t.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center text-slate-400 italic">
+                            No contractors matching filters found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
             </div>
           )}
 
-          {/* ========================================================
-              VIEW 8: PRODUCTIVITY REPORT
-              ======================================================== */}
-          {activeSubTab === "productivity" && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 animate-fade-in text-xs">
-              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider font-mono">Resource Metrics</span>
-                  <h3 className="text-base font-black text-slate-900 mt-0.5">Crew Productivity Analysis</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Analysis of active man-hours, idle multipliers, and work-front utilization factors.</p>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-400">
-                  <span>Report ID: BTP-PR-9392</span>
-                </div>
-              </div>
-
-              {/* Productivity Indicators */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Installed concrete / man-hour</span>
-                  <span className="text-lg font-bold text-slate-700 block mt-1">2.1 m³ / man-hour</span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">+8% above standard baseline</span>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Average Conduit runs / man-hour</span>
-                  <span className="text-lg font-bold text-slate-700 block mt-1">5.8 meters / man-hour</span>
-                  <span className="text-[10px] text-slate-500">Matches planned engineering model speed</span>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Average Glazing / man-hour</span>
-                  <span className="text-lg font-bold text-slate-400 block mt-1">0.0 meters (Outage delay)</span>
-                  <span className="text-[10px] text-rose-500 font-semibold">Rain related delays on exterior scaffolding</span>
-                </div>
-              </div>
-
-              {/* Idle Time Root Causes Breakdown */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-150 flex flex-col gap-3">
-                <span className="text-[10px] text-slate-400 font-black uppercase font-mono tracking-wider">
-                  Measured Crew Idle Time Factor (Weekly Aggregate)
-                </span>
-                
-                <div className="flex flex-col gap-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-700">Weather delay stand-down:</span>
-                    <span className="font-mono font-bold text-rose-500">14.5% (Severe wind & precipitation)</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
-                    <div className="bg-rose-500 h-full w-[14.5%]" />
-                  </div>
-
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="font-semibold text-slate-700">MEP Spatial Clash adjustment wait:</span>
-                    <span className="font-mono font-bold text-amber-500">6.2% (Sub-contractor coordination gap)</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
-                    <div className="bg-amber-500 h-full w-[6.2%]" />
-                  </div>
-
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="font-semibold text-slate-700">Material re-supply lag:</span>
-                    <span className="font-mono font-bold text-slate-500">3.1% (Late delivery of drywall metal studs)</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
-                    <div className="bg-slate-500 h-full w-[3.1%]" />
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ========================================================
-              VIEW 9: REPORT DISTRIBUTION CONFIGURATION (Scheduler & Emails)
-              ======================================================== */}
+          {/* ==========================================
+              SUBTAB 6: AUTOMATED DISTRIBUTION SCHEDULES
+              ========================================== */}
           {activeSubTab === "scheduler" && (
             <div className="flex flex-col gap-6 animate-fade-in text-xs">
               
@@ -1077,11 +1328,11 @@ export default function ReportingCenter() {
                       onChange={(e) => setNewRepType(e.target.value)}
                       className="bg-slate-50 border border-slate-200 text-xs rounded p-2 text-slate-700 font-semibold focus:outline-indigo-500"
                     >
-                      <option value="Daily Progress Report">Daily Progress Report</option>
-                      <option value="Weekly Report">Weekly Report</option>
-                      <option value="Monthly Milestone Report">Monthly Milestone Report</option>
-                      <option value="Executive Dashboard Report">Executive Dashboard Report</option>
-                      <option value="Incident & Delay Report">Incident & Delay Report</option>
+                      <option value="Daily Shift Log">Daily Shift Log</option>
+                      <option value="Weekly Milestone Audit">Weekly Milestone Audit</option>
+                      <option value="Monthly RERA Audit">Monthly RERA Audit</option>
+                      <option value="Delay Incident Registry">Delay Incident Registry</option>
+                      <option value="Trade Performance Log">Trade Performance Log</option>
                     </select>
                   </div>
 
@@ -1129,14 +1380,14 @@ export default function ReportingCenter() {
                       type="text"
                       value={newTime}
                       onChange={(e) => setNewTime(e.target.value)}
-                      className="bg-slate-50 border border-slate-200 rounded p-2 text-xs font-semibold text-slate-700 focus:outline-indigo-500"
+                      className="bg-slate-50 border border-slate-200 rounded p-2 text-xs font-semibold text-slate-700 focus:outline-indigo-500 font-mono"
                     />
                   </div>
 
                   <div className="md:col-span-3 flex justify-end">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition text-xs flex items-center gap-1.5"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition text-xs flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       Add Distribution Schedule
@@ -1145,37 +1396,38 @@ export default function ReportingCenter() {
                 </form>
               </div>
 
-              {/* Active list section */}
+              {/* Active schedules list */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-3">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Active Scheduled Automation Tasks
                 </span>
 
                 <div className="flex flex-col gap-2.5">
-                  {schedules.map(sch => (
+                  {schedules.map((sch) => (
                     <div key={sch.id} className="bg-slate-50 border border-slate-150 p-3 rounded-lg flex items-center justify-between text-[11px]">
                       <div className="flex items-center gap-3">
                         <div className={`p-1.5 rounded-md border ${sch.active ? "bg-indigo-100 text-indigo-700 border-indigo-200" : "bg-slate-200 text-slate-500 border-slate-300"}`}>
-                          <Clock3 className="w-4 h-4" />
+                          <Clock3 className="w-4.5 h-4.5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-slate-800 text-xs">{sch.reportType}</span>
-                            <span className="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.2 rounded font-bold font-mono">
+                            <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded font-bold font-mono">
                               {sch.frequency}
                             </span>
                           </div>
-                          <p className="text-slate-500 mt-0.5">To: <span className="font-semibold text-slate-700">{sch.recipient}</span> | Format: <span className="font-bold">{sch.format}</span> | Dispatch Time: <span className="font-semibold text-slate-700">{sch.timeOfDay}</span></p>
+                          <p className="text-slate-500 mt-0.5">
+                            To: <span className="font-semibold text-slate-700">{sch.recipient}</span> | Format: <span className="font-bold">{sch.format}</span> | Dispatch Time: <span className="font-semibold text-slate-700 font-mono">{sch.timeOfDay}</span>
+                          </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {/* Toggle switch */}
                         <button
                           onClick={() => handleToggleSchedule(sch.id)}
-                          className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border transition ${
-                            sch.active 
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                          className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border transition cursor-pointer ${
+                            sch.active
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-250 font-extrabold"
                               : "bg-slate-100 text-slate-400 border-slate-200"
                           }`}
                         >
@@ -1183,7 +1435,7 @@ export default function ReportingCenter() {
                         </button>
                         <button
                           onClick={() => handleDeleteSchedule(sch.id)}
-                          className="p-1 text-slate-400 hover:text-red-500 transition rounded hover:bg-red-50"
+                          className="p-1 text-slate-400 hover:text-red-500 transition rounded hover:bg-red-50 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1193,11 +1445,11 @@ export default function ReportingCenter() {
                 </div>
               </div>
 
-              {/* Instant Email Tester */}
-              <div className="bg-slate-900 text-white p-5 rounded-xl border border-slate-800 flex flex-col gap-4">
+              {/* SMTP Tester */}
+              <div className="bg-slate-900 text-white p-5 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-sm">
                 <div>
                   <span className="text-[10px] text-indigo-400 font-bold uppercase font-mono">Diagnostics & Trigger</span>
-                  <h4 className="font-bold text-sm mt-0.5">Manual SMTP Distribution Trigger</h4>
+                  <h4 className="font-bold text-sm mt-0.5 text-slate-200">Manual SMTP Distribution Trigger</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">Force compile and test email transmission instantly to any address.</p>
                 </div>
 
@@ -1213,7 +1465,7 @@ export default function ReportingCenter() {
                   <button
                     type="submit"
                     disabled={emailSending}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 font-bold text-white rounded-lg transition text-xs flex items-center gap-1.5"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 font-bold text-white rounded-lg transition text-xs flex items-center gap-1.5 cursor-pointer"
                   >
                     <Send className={`w-3.5 h-3.5 ${emailSending ? "animate-spin" : ""}`} />
                     {emailSending ? "Transmitting..." : "Send Test Report"}
@@ -1221,7 +1473,7 @@ export default function ReportingCenter() {
                 </form>
 
                 {emailSuccess && (
-                  <div className="bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 p-2.5 rounded-lg text-[11px] leading-relaxed flex items-center gap-2">
+                  <div className="bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 p-2.5 rounded-lg text-[11px] leading-relaxed flex items-center gap-2 animate-fade-in">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     <span>Success! Daily Progress Report transmission dispatched successfully to {emailInput} via SMTP (SES Pipeline ID #SMTP-BTP-93).</span>
                   </div>
@@ -1231,74 +1483,70 @@ export default function ReportingCenter() {
             </div>
           )}
 
-          {/* ========================================================
-              VIEW 10: REPORTING ARCHITECTURE (System Design)
-              ======================================================== */}
+          {/* ==========================================
+              SUBTAB 7: ARCHITECTURE SPECS
+              ========================================== */}
           {activeSubTab === "architecture" && (
             <div className="flex flex-col gap-6 animate-fade-in text-xs leading-relaxed">
               <div className="border-b border-slate-200 pb-3">
                 <span className="text-[10px] uppercase font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded font-mono">
                   Engine specifications
                 </span>
-                <h3 className="text-xl font-black text-slate-900 mt-2">End-to-End Reporting Architecture</h3>
+                <h3 className="text-lg font-black text-slate-900 mt-2">End-to-End Reporting Architecture</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   How our system captures spatial photogrammetry drone telemetry, aligns it over PostgreSQL/PostGIS, runs Monte Carlo estimators, and compiles automated PDFs.
                 </p>
               </div>
 
-              {/* System architecture flowchart (vector-styled bento block) */}
+              {/* Event Flow flowchart card */}
               <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider font-mono">
                   Data Pipelines & Event Flow
                 </span>
 
                 <div className="flex flex-col gap-4">
-                  {/* Step 1 */}
-                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-150">
                     <div className="w-8 h-8 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0 font-mono">
                       01
                     </div>
                     <div>
-                      <span className="font-bold text-slate-800 text-xs block">Drone & Photogrammetry Ingestion</span>
+                      <span className="font-bold text-slate-850 text-xs block">Drone & Photogrammetry Ingestion</span>
                       <p className="text-slate-500 text-[11px] mt-0.5">
                         Weekly high-res aerial drone mapping uploads orthomosaics. YOLO-v8 instance segmentation algorithms label actual spatial concrete volume blocks and layout boundaries.
                       </p>
                     </div>
                   </div>
 
-                  {/* Step 2 */}
-                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-150">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold flex items-center justify-center text-xs shrink-0 font-mono">
                       02
                     </div>
                     <div>
-                      <span className="font-bold text-slate-800 text-xs block">PostgreSQL Spatial Alignment (TimescaleDB)</span>
+                      <span className="font-bold text-slate-850 text-xs block">PostgreSQL Spatial Alignment (TimescaleDB)</span>
                       <p className="text-slate-500 text-[11px] mt-0.5">
                         Spatial metadata is persisted in relational PostgreSQL database. Progress logs are written to high-performance timeseries tables to record daily crew counts, weather alerts, and trade installation speeds.
                       </p>
                     </div>
                   </div>
 
-                  {/* Step 3 */}
-                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-150">
                     <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 text-amber-700 font-bold flex items-center justify-center text-xs shrink-0 font-mono">
                       03
                     </div>
                     <div>
-                      <span className="font-bold text-slate-800 text-xs block">Stochastic & ML-Inspired Calculations</span>
+                      <span className="font-bold text-slate-850 text-xs block">Stochastic & ML-Inspired Calculations</span>
                       <p className="text-slate-500 text-[11px] mt-0.5">
                         Celery background tasks ingest actual timelines, evaluate meteorological alerts via forecast APIs, calculate Critical Path floats, and execute Monte Carlo simulations to model delay distributions.
                       </p>
                     </div>
                   </div>
 
-                  {/* Step 4 */}
-                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div className="flex gap-4 items-start bg-slate-50 p-3 rounded-lg border border-slate-150">
                     <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-white font-bold flex items-center justify-center text-xs shrink-0 font-mono">
                       04
                     </div>
                     <div>
-                      <span className="font-bold text-slate-800 text-xs block">Weasyprint HTML-to-PDF Compiling</span>
+                      <span className="font-bold text-slate-850 text-xs block">Weasyprint HTML-to-PDF Compiling</span>
                       <p className="text-slate-500 text-[11px] mt-0.5">
                         A headless Python microservice triggers on distribution cron loops. It pulls template layouts, injects Recharts metrics as high-fidelity SVG graphics, compiles CSS, and formats final RERA compliant report attachments.
                       </p>
@@ -1310,9 +1558,237 @@ export default function ReportingCenter() {
             </div>
           )}
 
-        </div>
+        </main>
 
       </div>
+
+      {/* PDF HIGH-FIDELITY PRINT PRE-VISUALIZATION MODAL */}
+      {showPrintModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-up text-slate-800">
+            {/* Modal header */}
+            <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Printer className="w-4 h-4 text-indigo-400" />
+                <span className="font-bold text-xs uppercase tracking-wider">BuildTrace PDF Compiler & Print Preview</span>
+              </div>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Print Sheet Area */}
+            <div className="flex-1 overflow-y-auto p-8 bg-slate-100" id="print-sheet-wrapper">
+              <div className="bg-white p-8 max-w-2xl mx-auto shadow-sm border border-slate-300 rounded relative" id="printable-area">
+                {/* Stamp & Barcode overlay */}
+                <div className="absolute top-8 right-8 flex flex-col items-end gap-1 select-none pointer-events-none">
+                  <div className="border-4 border-emerald-600/30 text-emerald-600/30 font-black tracking-widest text-[11px] uppercase p-1.5 rotate-12 rounded">
+                    Verified CV Scan
+                  </div>
+                  <div className="text-[8px] font-mono text-slate-300 mt-1">
+                    *BTP-L1-4958-VALIDATED*
+                  </div>
+                </div>
+
+                {/* Print Header */}
+                <div className="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-start">
+                  <div>
+                    <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">BuildTrace</h1>
+                    <span className="text-[10px] text-slate-500 font-mono tracking-wider block uppercase font-bold">
+                      Bengaluru Whitefield Tech Park Phase 2
+                    </span>
+                    <span className="text-[9px] text-slate-400 block font-mono">RERA ID: KA-RERA-2026-BTP09</span>
+                  </div>
+                  <div className="text-right text-[10px] font-mono text-slate-400">
+                    <p className="font-bold text-slate-800">Date Compiled: 2026-07-11</p>
+                    <p>Operator: sidduchitiki@gmail.com</p>
+                    <p className="text-indigo-600 font-bold mt-1">Status: KA-RERA Compliant</p>
+                  </div>
+                </div>
+
+                {/* Print Title */}
+                <div className="mb-6">
+                  <span className="text-[9px] font-mono text-slate-400 block uppercase">Official Progress Report Snapshot</span>
+                  <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-widest mt-1">
+                    {activeSubTab === "daily" && "Daily Progress Statement"}
+                    {activeSubTab === "weekly" && "Weekly Milestone Compliance Audit"}
+                    {activeSubTab === "monthly" && "Monthly Statutory RERA Assessment"}
+                    {activeSubTab === "delay" && "Critical Path Delay Incident Register"}
+                    {activeSubTab === "trade" && "Active Subcontractors Performance Ledger"}
+                    {activeSubTab === "scheduler" && "Automated Distribution Schedules"}
+                    {activeSubTab === "architecture" && "Reporting Infrastructure Specs"}
+                  </h2>
+                </div>
+
+                {/* Print Content - Custom render based on active tab */}
+                <div className="text-xs space-y-5">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded text-[11px] leading-relaxed">
+                    <strong>Report Summary Statement:</strong> This progress document registers physical site outputs detected via drone camera mapping and validated automatically against the master architectural design specifications.
+                  </div>
+
+                  {/* Render summary tables for printing */}
+                  {activeSubTab === "daily" && (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[10px] border-b border-slate-200 pb-1">Task Logs Summary</h4>
+                      <table className="w-full text-left text-[10px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-300 font-mono text-[9px] text-slate-500 uppercase">
+                            <th className="py-1">ID</th>
+                            <th className="py-1">Block</th>
+                            <th className="py-1">Trade</th>
+                            <th className="py-1">Work Item</th>
+                            <th className="py-1">Quantity</th>
+                            <th className="py-1 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDailyLogs.slice(0, 6).map((log) => (
+                            <tr key={log.id} className="border-b border-slate-100">
+                              <td className="py-1.5 font-mono font-bold text-slate-900">{log.id}</td>
+                              <td className="py-1.5">{log.block} ({log.shift})</td>
+                              <td className="py-1.5 font-semibold text-slate-700">{log.trade}</td>
+                              <td className="py-1.5">{log.item}</td>
+                              <td className="py-1.5 font-mono">{log.quantity}</td>
+                              <td className="py-1.5 text-right font-bold text-slate-800">{log.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {activeSubTab === "weekly" && (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[10px] border-b border-slate-200 pb-1">Weekly Milestones</h4>
+                      <table className="w-full text-left text-[10px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-300 font-mono text-[9px] text-slate-500 uppercase">
+                            <th className="py-1">ID</th>
+                            <th className="py-1">Block</th>
+                            <th className="py-1">Milestone Description</th>
+                            <th className="py-1">Target Date</th>
+                            <th className="py-1">Verified Date</th>
+                            <th className="py-1 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredWeeklyMilestones.slice(0, 6).map((ms) => (
+                            <tr key={ms.id} className="border-b border-slate-100">
+                              <td className="py-1.5 font-mono font-bold text-slate-900">{ms.id}</td>
+                              <td className="py-1.5">{ms.block}</td>
+                              <td className="py-1.5 font-semibold">{ms.milestone}</td>
+                              <td className="py-1.5 font-mono">{ms.targetDate}</td>
+                              <td className="py-1.5 font-mono">{ms.actualDate || "Pending"}</td>
+                              <td className="py-1.5 text-right font-bold text-slate-800">{ms.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {activeSubTab === "monthly" && (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[10px] border-b border-slate-200 pb-1">RERA Disclosure Audits</h4>
+                      <table className="w-full text-left text-[10px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-300 font-mono text-[9px] text-slate-500 uppercase">
+                            <th className="py-1">ID</th>
+                            <th className="py-1">RERA Clause</th>
+                            <th className="py-1">Subject Area</th>
+                            <th className="py-1 text-center">Score</th>
+                            <th className="py-1 text-right">Compliance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredReraAudits.map((audit) => (
+                            <tr key={audit.id} className="border-b border-slate-100">
+                              <td className="py-1.5 font-mono font-bold text-slate-900">{audit.id}</td>
+                              <td className="py-1.5 font-mono text-indigo-700">{audit.clause}</td>
+                              <td className="py-1.5">{audit.subject}</td>
+                              <td className="py-1.5 text-center font-bold">{audit.score}%</td>
+                              <td className="py-1.5 text-right font-bold text-slate-800">{audit.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {activeSubTab === "delay" && (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[10px] border-b border-slate-200 pb-1">Delay Incident Register</h4>
+                      <table className="w-full text-left text-[10px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-300 font-mono text-[9px] text-slate-500 uppercase">
+                            <th className="py-1">ID Code</th>
+                            <th className="py-1">Block</th>
+                            <th className="py-1">Incident Summary</th>
+                            <th className="py-1">Category</th>
+                            <th className="py-1 text-center">Float Delay</th>
+                            <th className="py-1 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDelayIncidents.map((inc) => (
+                            <tr key={inc.id} className="border-b border-slate-100">
+                              <td className="py-1.5 font-mono font-bold text-slate-900">{inc.code}</td>
+                              <td className="py-1.5">{inc.block}</td>
+                              <td className="py-1.5 font-semibold">{inc.incident}</td>
+                              <td className="py-1.5 text-slate-600">{inc.category}</td>
+                              <td className="py-1.5 text-center font-bold text-rose-600 font-mono">+{inc.floatImpact.toFixed(1)} Days</td>
+                              <td className="py-1.5 text-right font-bold text-slate-800">{inc.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Signature sign-offs */}
+                  <div className="pt-8 mt-12 border-t border-slate-300 grid grid-cols-2 gap-8 text-[10px]">
+                    <div className="flex flex-col gap-6">
+                      <span className="text-slate-400 uppercase font-mono tracking-wider">Certified Chartered Architect</span>
+                      <div className="border-b border-slate-400 w-3/4 h-2" />
+                      <span className="font-bold text-slate-700 font-mono">Registration: COA-A/2026/842</span>
+                    </div>
+                    <div className="flex flex-col gap-6 text-right items-end">
+                      <span className="text-slate-400 uppercase font-mono tracking-wider">BuildTrace QC Authority</span>
+                      <div className="border-b border-slate-400 w-3/4 h-2" />
+                      <span className="font-bold text-slate-700 font-mono">Digital Signature Stamp: [VALIDATED]</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5 shrink-0">
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-bold text-slate-600 cursor-pointer"
+              >
+                Close Preview
+              </button>
+              <button
+                onClick={() => {
+                  window.print();
+                  setShowPrintModal(false);
+                  setExportSuccessMessage("Document snapshot compiled and sent to local printer spool.");
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-700 rounded-lg text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-white" />
+                <span>Print Official Sheet</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

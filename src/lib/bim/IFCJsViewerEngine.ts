@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { IBIMViewerEngine, BIMElementMetadata, parseIFCFileText } from "./BIMViewerAbstraction";
 
 // Default Mock dataset in IFC format structure with global IDs (GUIDs)
-const DEFAULT_BIM_DATASET: BIMElementMetadata[] = [
+export const DEFAULT_BIM_DATASET: BIMElementMetadata[] = [
   {
     id: "slab_foundation",
     guid: "3b8s92jaK29s1A8dzLp001",
@@ -339,6 +339,12 @@ export class IFCJsViewerEngine implements IBIMViewerEngine {
   // Clipping Planes for Section View
   private clippingPlane: THREE.Plane | null = null;
 
+  // New Measurement controls
+  private isMeasurementMode = false;
+  private measurementPoints: THREE.Vector3[] = [];
+  private measurementMeshes: (THREE.Mesh | THREE.Line)[] = [];
+  private onMeasureCallback: ((distance: number | null, p1?: [number, number, number], p2?: [number, number, number]) => void) | null = null;
+
   constructor() {}
 
   getEngineName(): string {
@@ -588,6 +594,79 @@ export class IFCJsViewerEngine implements IBIMViewerEngine {
     this.updateCameraPosition();
   }
 
+  zoom(direction: "in" | "out"): void {
+    if (!this.camera) return;
+    const step = direction === "in" ? -4 : 4;
+    this.sphericalCoords.radius = Math.max(5, Math.min(80, this.sphericalCoords.radius + step));
+    this.updateCameraPosition();
+  }
+
+  resetCamera(): void {
+    this.cameraTarget.set(0, 3.5, 0);
+    this.sphericalCoords = { radius: 30, theta: Math.PI / 4, phi: Math.PI / 6 };
+    this.updateCameraPosition();
+  }
+
+  toggleElementVisibility(elementId: string, visible: boolean): void {
+    const mesh = this.meshesMap.get(elementId);
+    if (mesh) {
+      mesh.visible = visible;
+    }
+  }
+
+  showAllElements(): void {
+    this.meshesMap.forEach((mesh, id) => {
+      const elem = this.elements.find(e => e.id === id);
+      if (!elem) return;
+      let isVisible = true;
+      if (this.activeFloor && elem.floor !== this.activeFloor) {
+        isVisible = false;
+      }
+      if (this.activeTrade && elem.category !== this.activeTrade) {
+        isVisible = false;
+      }
+      mesh.visible = isVisible;
+    });
+  }
+
+  setMeasurementMode(active: boolean, onMeasure?: (distance: number | null, p1?: [number, number, number], p2?: [number, number, number]) => void): void {
+    this.isMeasurementMode = active;
+    if (onMeasure) {
+      this.onMeasureCallback = onMeasure;
+    }
+    if (!active) {
+      this.clearMeasurements();
+    }
+  }
+
+  clearMeasurements(): void {
+    if (this.scene) {
+      this.measurementMeshes.forEach(mesh => {
+        this.scene?.remove(mesh);
+        if (mesh instanceof THREE.Mesh) {
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        } else if (mesh instanceof THREE.Line) {
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+    }
+    this.measurementPoints = [];
+    this.measurementMeshes = [];
+    if (this.onMeasureCallback) {
+      this.onMeasureCallback(null);
+    }
+  }
+
   // Private Helper: Update visual representation
   private render3DObjects(): void {
     if (!this.scene) return;
@@ -785,11 +864,55 @@ export class IFCJsViewerEngine implements IBIMViewerEngine {
     const intersects = this.raycaster.intersectObjects(visibleMeshes);
 
     if (intersects.length > 0) {
+      const hitPoint = intersects[0].point;
+
+      // Handle Measurement Mode Click Intercept
+      if (this.isMeasurementMode) {
+        if (this.measurementPoints.length >= 2) {
+          this.clearMeasurements();
+        }
+
+        this.measurementPoints.push(hitPoint);
+
+        // Draw visual pink neon coordinate marker sphere
+        const sphereGeo = new THREE.SphereGeometry(0.18, 16, 16);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+        const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        sphereMesh.position.copy(hitPoint);
+        this.scene.add(sphereMesh);
+        this.measurementMeshes.push(sphereMesh);
+
+        if (this.measurementPoints.length === 1) {
+          if (this.onMeasureCallback) {
+            this.onMeasureCallback(null, [hitPoint.x, hitPoint.y, hitPoint.z]);
+          }
+        } else if (this.measurementPoints.length === 2) {
+          const p1 = this.measurementPoints[0];
+          const p2 = this.measurementPoints[1];
+          const distance = p1.distanceTo(p2);
+
+          // Draw visual neon pink connection line
+          const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+          const lineMat = new THREE.LineBasicMaterial({ color: 0xec4899, linewidth: 2 });
+          const line = new THREE.Line(lineGeo, lineMat);
+          this.scene.add(line);
+          this.measurementMeshes.push(line);
+
+          if (this.onMeasureCallback) {
+            this.onMeasureCallback(distance, [p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]);
+          }
+        }
+        return;
+      }
+
       const clickedMesh = intersects[0].object as THREE.Mesh;
       if (this.onSelectCallback) {
         this.onSelectCallback(clickedMesh.name);
       }
     } else {
+      if (this.isMeasurementMode) {
+        return;
+      }
       if (this.onSelectCallback) {
         this.onSelectCallback(null);
       }

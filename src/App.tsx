@@ -1,332 +1,746 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import BIMViewer from "./BIMViewer";
 import AIAnomalyCenter from "./AIAnomalyCenter";
 import TechArchitecture from "./TechArchitecture";
 import DashboardMetrics from "./DashboardMetrics";
 import PRDViewer from "./PRDViewer";
 import RoadmapViewer from "./RoadmapViewer";
-import { BIMElement, Anomaly, ProjectStats } from "./types";
-import { PROJECT_STATS, SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP } from "./data";
+import ReportingCenter from "./ReportingCenter";
+import NotificationCenter from "./NotificationCenter";
+import AuditTrailViewer from "./AuditTrailViewer";
+import ArchitectureExplorer from "./components/ArchitectureExplorer";
+import BIMAnalyticsPanel from "./components/BIMAnalyticsPanel";
+import BIMTimelineComponent from "./components/BIMTimelineComponent";
+
+// Import new Buildots-inspired modular workspace views
+import DashboardView from "./components/DashboardView";
+import ProjectsView from "./components/ProjectsView";
+import SchedulesView from "./components/SchedulesView";
+import IssuesView from "./components/IssuesView";
+import UsersView from "./components/UsersView";
+import SettingsView from "./components/SettingsView";
+import PremiumTopNavigation from "./components/PremiumTopNavigation";
+
+import { BIMElement, Anomaly } from "./types";
+import { useAppStore, TabType } from "./store";
+import { SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP } from "./data";
 import { 
   Building2, 
   MapPin, 
   Layers, 
   Sparkles, 
-  HelpCircle, 
   Activity, 
   Database, 
-  TrendingUp, 
-  FlameKindling,
-  CheckCircle,
-  Clock,
+  CheckCircle, 
+  Clock, 
   ArrowRight,
   FileText,
-  Milestone
+  Milestone,
+  Bell,
+  FileSpreadsheet,
+  History,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  ExternalLink,
+  ShieldAlert,
+  Sliders,
+  ShieldCheck,
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  Settings,
+  Calendar,
+  Hammer
 } from "lucide-react";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"tracker" | "ai" | "architecture" | "prd" | "roadmap">("tracker");
-  const [currentWeek, setCurrentWeek] = useState<number>(3); // Default to Week 3
-  const [selectedElement, setSelectedElement] = useState<BIMElement | null>(null);
-  const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null);
+  const {
+    activeTab,
+    setActiveTab,
+    isSidebarExpanded,
+    toggleSidebar,
+    currentWeek,
+    setCurrentWeek,
+    activeProject,
+    selectedElement,
+    setSelectedElement,
+    selectedAnomaly,
+    setSelectedAnomaly,
+    selectElementById,
+    selectAnomalyById,
+    searchQuery,
+    setSearchQuery
+  } = useAppStore();
 
-  // Syncing selection from 3D model to active anomaly
+  const [rightPanelTab, setRightPanelTab] = useState<"analytics" | "inspector">("analytics");
+
+  // Handle synchronized selection from the 3D BIM Viewer
   const handleSelectElement = (element: BIMElement | null) => {
-    setSelectedElement(element);
-    if (element && element.anomalyId) {
-      const matchedAnom = SITE_ANOMALIES.find(a => a.id === element.anomalyId);
-      if (matchedAnom) {
-        setSelectedAnomaly(matchedAnom);
-      } else {
-        setSelectedAnomaly(null);
-      }
+    if (element) {
+      selectElementById(element.id);
+      setRightPanelTab("inspector");
     } else {
+      setSelectedElement(null);
       setSelectedAnomaly(null);
     }
   };
 
+  // Handle synchronized selection from anomalies panel
   const handleSelectAnomalyDirect = (anomaly: Anomaly) => {
-    setSelectedAnomaly(anomaly);
-    // Find the associated elements to highlight
-    const matchedElem = BIM_ELEMENTS_LOOKUP.find(e => e.id === anomaly.elementId);
-    if (matchedElem) {
-      setSelectedElement(matchedElem);
-    }
+    selectAnomalyById(anomaly.id);
   };
 
+  // Filter site anomalies based on search query or current selected elements
+  const filteredAnomalies = SITE_ANOMALIES.filter(a => {
+    if (!searchQuery) return true;
+    return (
+      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.elementName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans selection:bg-indigo-600 selection:text-white">
+    <div className="h-screen w-screen flex bg-slate-50/60 overflow-hidden font-sans text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
       
-      {/* Upper Navigation / Control Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* 1. COLLAPSIBLE LEFT SIDEBAR: Buildots-Inspired Enterprise Navigation */}
+      <aside 
+        id="buildots-sidebar"
+        aria-label="Main Navigation Sidebar"
+        className={`bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 select-none ${
+          isSidebarExpanded ? "w-64" : "w-16"
+        }`}
+      >
+        <div className="flex flex-col overflow-y-auto overflow-x-hidden flex-1 scrollbar-thin">
           
-          {/* Brand Logo & Location */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-md">
-              <Building2 className="w-5 h-5 text-indigo-400" />
+          {/* Logo & Platform Context */}
+          <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-100 shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-sm">
+              <Building2 className="w-5 h-5 text-indigo-500" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-extrabold text-slate-900 tracking-tight">BuildTrace India</h1>
-                <span className="text-[9px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full border border-indigo-100">
-                  Buildots Alternative
-                </span>
+            {isSidebarExpanded && (
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-slate-900 tracking-tight leading-none">BuildTrace</span>
+                <span className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider mt-1">Enterprise Suite</span>
               </div>
-              <p className="text-xs text-slate-500 flex items-center gap-1">
+            )}
+          </div>
+
+          {/* Project Details context (Only if expanded) */}
+          {isSidebarExpanded && (
+            <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                {PROJECT_STATS.location}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick RERA & Budget HUD */}
-          <div className="hidden lg:flex gap-6 items-center text-xs">
-            <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">RERA Registration</span>
-              <span className="font-semibold text-slate-700">{PROJECT_STATS.reraId}</span>
-            </div>
-            <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">BIM Baseline Budget</span>
-              <span className="font-semibold text-slate-700">{PROJECT_STATS.totalCost}</span>
-            </div>
-            <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Construction Stage</span>
-              <span className="font-semibold text-slate-700">L1 Structure + Finishing</span>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs gap-0.5">
-            <button
-              onClick={() => setActiveTab("tracker")}
-              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "tracker" 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              3D Site Tracker
-            </button>
-            <button
-              onClick={() => setActiveTab("ai")}
-              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "ai" 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              AI Anomaly Center
-            </button>
-            <button
-              onClick={() => setActiveTab("architecture")}
-              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "architecture" 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Database className="w-4 h-4" />
-              Architecture Spec
-            </button>
-            <button
-              onClick={() => setActiveTab("prd")}
-              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "prd" 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              PRD Doc
-            </button>
-            <button
-              onClick={() => setActiveTab("roadmap")}
-              className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "roadmap" 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Milestone className="w-4 h-4 text-pink-500 animate-pulse" />
-              v1.0 Roadmap
-            </button>
-          </div>
-
-        </div>
-      </header>
-
-      {/* Main Workspace Frame */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        
-        {/* TAB 1: 3D Site Tracker & Dashboard */}
-        {activeTab === "tracker" && (
-          <div className="flex flex-col gap-6">
-            
-            {/* Top Workspace Grid (3D model + Inspection Panel) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px]">
-              
-              {/* 3D Model Viewer (8 Cols) */}
-              <div className="lg:col-span-8 h-[550px] relative">
-                <BIMViewer 
-                  onSelectElement={handleSelectElement} 
-                  selectedElement={selectedElement}
-                  anomalies={SITE_ANOMALIES}
-                  currentWeek={currentWeek}
-                />
+                <span className="font-semibold truncate">{activeProject.name}</span>
               </div>
+              <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-0.5">
+                <span>RERA ID:</span>
+                <span className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 font-semibold">{activeProject.reraId}</span>
+              </div>
+            </div>
+          )}
 
-              {/* Elements Specs Inspection Panel (4 Cols) */}
-              <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                
-                <div>
-                  <div className="border-b border-slate-100 pb-3.5 mb-4">
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
-                      <Activity className="w-4 h-4 text-indigo-500" />
-                      Spatial Object Inspector
-                    </h3>
-                    <p className="text-[11px] text-slate-400">Click elements inside the 3D canvas above to load IFC parameters</p>
-                  </div>
+          {/* Navigation Menu Links */}
+          <nav role="navigation" className="p-3 flex flex-col gap-5 mt-2">
+            
+            {/* Section 1: Portfolio HUD */}
+            <div>
+              {isSidebarExpanded && (
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-3 block mb-1.5 font-mono">
+                  Portfolio HUD
+                </span>
+              )}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  aria-current={activeTab === "dashboard" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "dashboard"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Portfolio Overview Dashboard"
+                >
+                  <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === "dashboard" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Dashboard</span>}
+                </button>
 
-                  {selectedElement ? (
-                    <div className="flex flex-col gap-4 text-xs">
-                      
-                      {/* Status Header */}
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex justify-between items-center">
-                        <span className="font-bold text-slate-800 text-sm">{selectedElement.name}</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          selectedElement.status === "completed" 
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-                            : (selectedElement.status === "delayed" ? "bg-red-50 text-red-700 border border-red-200" : "bg-blue-50 text-blue-700 border border-blue-200")
-                        }`}>
-                          {selectedElement.status}
-                        </span>
-                      </div>
+                <button
+                  onClick={() => setActiveTab("projects")}
+                  aria-current={activeTab === "projects" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "projects"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Indian Projects Portfolio"
+                >
+                  <Briefcase className={`w-4 h-4 shrink-0 ${activeTab === "projects" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Projects</span>}
+                </button>
+              </div>
+            </div>
 
-                      {/* Specs Metadata */}
-                      <div className="grid grid-cols-2 gap-3 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
-                        <div>
-                          <span className="text-[10px] text-slate-400 font-semibold block uppercase">BIM Domain</span>
-                          <span className="font-bold text-slate-700">{selectedElement.category} ({selectedElement.type})</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-400 font-semibold block uppercase">Material Grade</span>
-                          <span className="font-bold text-slate-700">{selectedElement.material || "IFC Custom Spec"}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-400 font-semibold block uppercase">Target Week</span>
-                          <span className="font-bold text-slate-700">{selectedElement.installationDate}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-400 font-semibold block uppercase">Computed Progress</span>
-                          <span className="font-bold text-indigo-600">{selectedElement.progress}% Complete</span>
-                        </div>
-                      </div>
+            {/* Section 2: BIM Construction */}
+            <div>
+              {isSidebarExpanded && (
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-3 block mb-1.5 font-mono">
+                  BIM Construction
+                </span>
+              )}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setActiveTab("bim-models")}
+                  aria-current={activeTab === "bim-models" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "bim-models"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="3D BIM Viewer"
+                >
+                  <Layers className={`w-4 h-4 shrink-0 ${activeTab === "bim-models" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>BIM Models</span>}
+                </button>
 
-                      {/* Anomaly Sync Block if applicable */}
-                      {selectedElement.anomalyId && selectedAnomaly && (
-                        <div className="bg-red-50/70 p-3.5 rounded-lg border border-red-100 flex flex-col gap-2">
-                          <div className="flex items-center gap-1.5 text-red-800 font-bold">
-                            <FlameKindling className="w-4 h-4 text-red-500 animate-pulse" />
-                            <span>BuildTrace Computer Vision Alert</span>
-                          </div>
-                          <p className="text-[11px] text-red-700 leading-relaxed">
-                            {selectedAnomaly.title}. {selectedAnomaly.deviation}. This is triggering scheduling delay warnings for upper floors.
-                          </p>
-                          <button
-                            onClick={() => {
-                              setActiveTab("ai");
-                            }}
-                            className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 mt-1 flex items-center gap-1 bg-white border border-indigo-200 px-3 py-1.5 rounded-md shadow-sm transition"
-                          >
-                            Generate Gemini Remediation Plan <ArrowRight className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
+                <button
+                  onClick={() => setActiveTab("site-progress")}
+                  aria-current={activeTab === "site-progress" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "site-progress"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Earned Value Site Progress"
+                >
+                  <Activity className={`w-4 h-4 shrink-0 ${activeTab === "site-progress" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Site Progress</span>}
+                </button>
 
-                      {!selectedElement.anomalyId && (
-                        <div className="bg-emerald-50/40 p-3 rounded-lg border border-emerald-100 flex items-center gap-2 text-emerald-800 text-[11px]">
-                          <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span>Spatial coordinates match virtual BIM specifications. No computer vision discrepancies detected.</span>
-                        </div>
-                      )}
-
-                    </div>
-                  ) : (
-                    <div className="h-[250px] flex flex-col justify-center items-center text-center p-4 border border-dashed border-slate-200 rounded-lg text-slate-400">
-                      <Layers className="w-10 h-10 text-slate-300 mb-2" />
-                      <h4 className="font-semibold text-slate-700 text-xs mb-0.5">No Object Loaded</h4>
-                      <p className="text-[11px] leading-relaxed max-w-[200px]">
-                        Rotate the 3D model with your cursor and click on any column, duct, or slab to inspect CAD specifications and photogrammetry overlays.
-                      </p>
+                <button
+                  onClick={() => setActiveTab("ai-analysis")}
+                  aria-current={activeTab === "ai-analysis" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "ai-analysis"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Computer Vision Discrepancy Analyzer"
+                >
+                  <Sparkles className={`w-4 h-4 shrink-0 ${activeTab === "ai-analysis" ? "text-white" : "text-indigo-500 animate-pulse"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>AI Analysis</span>
+                      <span className="bg-red-50 text-red-600 text-[8px] font-bold px-1 py-0.5 rounded border border-red-100">AI</span>
                     </div>
                   )}
+                </button>
+              </div>
+            </div>
+
+            {/* Section 3: Scheduling & Ops */}
+            <div>
+              {isSidebarExpanded && (
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-3 block mb-1.5 font-mono">
+                  Scheduling & Ops
+                </span>
+              )}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setActiveTab("schedules")}
+                  aria-current={activeTab === "schedules" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "schedules"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Construction Milestones & Gantt"
+                >
+                  <Calendar className={`w-4 h-4 shrink-0 ${activeTab === "schedules" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Schedules</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("activities")}
+                  aria-current={activeTab === "activities" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "activities"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Physical Site Logs & Audit Trail"
+                >
+                  <History className={`w-4 h-4 shrink-0 ${activeTab === "activities" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Activities</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("issues")}
+                  aria-current={activeTab === "issues" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "issues"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Quality Deviations Ledger"
+                >
+                  <AlertTriangle className={`w-4 h-4 shrink-0 ${activeTab === "issues" ? "text-white" : "text-red-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Issues</span>
+                      <span className="bg-red-50 text-red-600 text-[9px] font-bold px-1.5 py-0.2 rounded-full">4</span>
+                    </div>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Section 4: Reporting & Admin */}
+            <div>
+              {isSidebarExpanded && (
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-3 block mb-1.5 font-mono">
+                  Reporting & Admin
+                </span>
+              )}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setActiveTab("reports")}
+                  aria-current={activeTab === "reports" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "reports"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Report Compiler & Downloader"
+                >
+                  <FileSpreadsheet className={`w-4 h-4 shrink-0 ${activeTab === "reports" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Reports</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("notifications")}
+                  aria-current={activeTab === "notifications" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "notifications"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Real-time System Warning Streams"
+                >
+                  <Bell className={`w-4 h-4 shrink-0 ${activeTab === "notifications" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Notifications</span>
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("users")}
+                  aria-current={activeTab === "users" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "users"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Operator Permissions Directory"
+                >
+                  <Users className={`w-4 h-4 shrink-0 ${activeTab === "users" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Users</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("settings")}
+                  aria-current={activeTab === "settings" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "settings"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="System Cache & API Parameters"
+                >
+                  <Settings className={`w-4 h-4 shrink-0 ${activeTab === "settings" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Settings</span>}
+                </button>
+              </div>
+            </div>
+
+            {/* Section 5: Developer Specifications */}
+            <div>
+              {isSidebarExpanded && (
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-3 block mb-1.5 font-mono">
+                  Developer Specs
+                </span>
+              )}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setActiveTab("architecture")}
+                  aria-current={activeTab === "architecture" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "architecture"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Next.js & Zustand Architectural Blueprints"
+                >
+                  <Database className={`w-4 h-4 shrink-0 ${activeTab === "architecture" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Blueprints</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("prd")}
+                  aria-current={activeTab === "prd" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "prd"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Compliance Product Specs"
+                >
+                  <FileText className={`w-4 h-4 shrink-0 ${activeTab === "prd" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>Product Spec</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("roadmap")}
+                  aria-current={activeTab === "roadmap" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "roadmap"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="v1.0 Production Roadmap"
+                >
+                  <Milestone className={`w-4 h-4 shrink-0 ${activeTab === "roadmap" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && <span>v1.0 Roadmap</span>}
+                </button>
+              </div>
+            </div>
+
+          </nav>
+        </div>
+
+        {/* Collapsible drawer bottom action */}
+        <div className="p-3 border-t border-slate-100 flex items-center justify-between shrink-0">
+          <button 
+            onClick={toggleSidebar} 
+            aria-expanded={isSidebarExpanded}
+            aria-label="Toggle Navigation Sidebar"
+            className="w-full py-2 hover:bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition shadow-[0_1px_2px_rgba(0,0,0,0.01)]"
+          >
+            {isSidebarExpanded ? (
+              <div className="flex items-center gap-2 text-[11px] font-semibold">
+                <ChevronLeft className="w-4 h-4" />
+                <span>Collapse Sidebar</span>
+              </div>
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
+      </aside>
+
+      {/* 2. MAIN WORKING PLATFORM: Right Panel */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        {/* TOP NAVIGATION BAR */}
+        <PremiumTopNavigation />
+
+        {/* 3. SCROLLABLE WORKSPACE SCREEN STAGE */}
+        <main className="flex-1 overflow-y-auto bg-slate-50/55 p-6 md:p-8 flex flex-col gap-6 scrollbar-thin">
+          
+          {/* TAB 1: Dashboard View */}
+          {activeTab === "dashboard" && (
+            <DashboardView />
+          )}
+
+          {/* TAB 2: Projects Portfolio View */}
+          {activeTab === "projects" && (
+            <ProjectsView />
+          )}
+
+          {/* TAB 3: BIM Models View */}
+          {activeTab === "bim-models" && (
+            <div className="flex flex-col gap-6 animate-fade-in" id="bim-models-tab">
+              
+              {/* UPPER SECTION: 3D BIM Viewer & Object Inspector */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                
+                {/* 3D Model Viewer & Timeline System Card (8 Cols) */}
+                <div className="lg:col-span-8 flex flex-col gap-6">
+                  <div className="h-[550px] bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-200/60 relative flex flex-col">
+                    <BIMViewer 
+                      onSelectElement={handleSelectElement} 
+                      selectedElement={selectedElement}
+                      anomalies={SITE_ANOMALIES}
+                      currentWeek={currentWeek}
+                    />
+                  </div>
+
+                  {/* High-Fidelity Enterprise Timeline System */}
+                  <BIMTimelineComponent 
+                    currentWeek={currentWeek}
+                    setCurrentWeek={setCurrentWeek}
+                    selectedElement={selectedElement}
+                    onSelectElement={handleSelectElement}
+                  />
                 </div>
 
-                {/* Educational specs card (RERA / India-conforming) */}
-                <div className="p-3.5 bg-slate-900 text-white rounded-xl flex flex-col gap-1.5 text-[11px] mt-4">
-                  <span className="font-bold text-indigo-400 block uppercase tracking-wider text-[9px]">How BuildTrace Works:</span>
-                  <p className="text-slate-300 leading-relaxed">
-                    Drone cameras capture ultra-high resolution orthomosaics. Our backend FastAPI aligns these scans over 3D BIM coordinate models, using instance segmentation to check progress against RERA schedules.
-                  </p>
+                {/* Right Interactive Sidebar Container (4 Cols) */}
+                <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col h-[550px]">
+                  
+                  {/* Top Segmented Tab Switcher */}
+                  <div className="flex bg-slate-100 p-1 rounded-lg mb-4 shrink-0">
+                    <button
+                      onClick={() => setRightPanelTab("analytics")}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                        rightPanelTab === "analytics"
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      <Activity className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Live Analytics</span>
+                    </button>
+                    <button
+                      onClick={() => setRightPanelTab("inspector")}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5 relative ${
+                        rightPanelTab === "inspector"
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Element Inspector</span>
+                      {selectedElement && (
+                        <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Scrollable Tab Content Viewport */}
+                  <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin">
+                    {rightPanelTab === "analytics" ? (
+                      <BIMAnalyticsPanel 
+                        onSelectElement={(elem) => {
+                          handleSelectElement(elem);
+                          setRightPanelTab("inspector");
+                        }}
+                        selectedElement={selectedElement}
+                        currentWeek={currentWeek}
+                      />
+                    ) : (
+                      <div className="flex flex-col h-full justify-between">
+                        <div>
+                          <div className="border-b border-slate-100 pb-3 mb-4 flex justify-between items-center">
+                            <div>
+                              <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider">
+                                <Activity className="w-4 h-4 text-indigo-500 shrink-0" />
+                                Spatial Inspector
+                              </h3>
+                              <p className="text-[10px] text-slate-400 mt-0.5">Physical property alignment ledger</p>
+                            </div>
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-mono font-bold px-1.5 py-0.5 rounded uppercase border border-slate-200/50">IFC 4.0</span>
+                          </div>
+
+                          {selectedElement ? (
+                            <div className="flex flex-col gap-4 text-xs animate-fade-in">
+                              
+                              {/* Status Header */}
+                              <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100 flex justify-between items-center">
+                                <div className="flex flex-col">
+                                  <span className="font-extrabold text-slate-800 text-sm leading-tight">{selectedElement.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono mt-0.5">GUID: {selectedElement.id}</span>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  selectedElement.status === "completed" 
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60" 
+                                    : (selectedElement.status === "delayed" ? "bg-red-50 text-red-700 border border-red-200/60" : "bg-blue-50 text-blue-700 border border-blue-200/60")
+                                }`}>
+                                  {selectedElement.status.replace("_", " ")}
+                                </span>
+                              </div>
+
+                              {/* Specs Metadata */}
+                              <div className="grid grid-cols-2 gap-3 bg-slate-50/30 p-3 rounded-lg border border-slate-150">
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">BIM Domain</span>
+                                  <span className="font-bold text-slate-700 text-[11px]">{selectedElement.category} ({selectedElement.type})</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Material Grade</span>
+                                  <span className="font-bold text-slate-700 text-[11px]">{selectedElement.material || "M35 Rein. Concrete"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Target Stage</span>
+                                  <span className="font-bold text-slate-700 text-[11px]">{selectedElement.installationDate}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Calculated Progress</span>
+                                  <span className="font-bold text-indigo-600 text-[11px]">{selectedElement.progress}% Verified</span>
+                                </div>
+                              </div>
+
+                              {/* Anomaly Sync Block if applicable */}
+                              {selectedElement.anomalyId && selectedAnomaly && (
+                                <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 flex flex-col gap-2">
+                                  <div className="flex items-center gap-1.5 text-red-800 font-bold">
+                                    <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
+                                    <span className="text-xs">Computer Vision Dev Variance</span>
+                                  </div>
+                                  <p className="text-[11px] text-red-700 leading-relaxed">
+                                    {selectedAnomaly.title}. {selectedAnomaly.deviation}. This is currently introducing downstream delays for higher floor rebar placement.
+                                  </p>
+                                  <button
+                                    onClick={() => setActiveTab("ai-analysis")}
+                                    className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 mt-1 flex items-center justify-center gap-1 bg-white border border-indigo-200 px-3 py-2 rounded-md shadow-sm transition"
+                                  >
+                                    <span>Trigger Gemini Remediation Advice</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {!selectedElement.anomalyId && (
+                                <div className="bg-emerald-50/40 p-3.5 rounded-lg border border-emerald-100/60 flex items-start gap-2.5 text-emerald-800 text-[11px] leading-relaxed">
+                                  <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span>Physical scan matches model. Design geometry verified with zero deviations detected.</span>
+                                </div>
+                              )}
+
+                            </div>
+                          ) : (
+                            <div className="h-[250px] flex flex-col justify-center items-center text-center p-4 border border-dashed border-slate-200 rounded-lg text-slate-400">
+                              <Layers className="w-8 h-8 text-slate-300 mb-2" />
+                              <h4 className="font-bold text-slate-700 text-xs mb-0.5">No IFC Component Loaded</h4>
+                              <p className="text-[11px] leading-relaxed max-w-[200px] text-slate-400">
+                                Use your mouse to hover or click on columns, slabs, or piping inside the 3D model viewport.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Informational Callout matching Buildots quality */}
+                        <div className="p-3.5 bg-slate-900 text-white rounded-lg flex flex-col gap-1 text-[10px] leading-relaxed mt-4 font-sans shrink-0">
+                          <span className="font-bold text-indigo-400 block uppercase tracking-wider text-[8px] font-mono">Photogrammetry sync engine</span>
+                          <p className="text-slate-300">
+                            BuildTrace compares orthomosaics with standard design coordinates using instance-segmentation to log physical quantities.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
               </div>
 
+              {/* LOWER SECTION: Timeline slider & Earned Value Charts */}
+              <DashboardMetrics 
+                stats={activeProject} 
+                currentWeek={currentWeek} 
+                setCurrentWeek={setCurrentWeek} 
+                elements={BIM_ELEMENTS_LOOKUP}
+                anomalies={SITE_ANOMALIES}
+              />
+
             </div>
+          )}
 
-            {/* Bottom Dashboard Metrics & Timeline Player */}
-            <DashboardMetrics 
-              stats={PROJECT_STATS} 
-              currentWeek={currentWeek} 
-              setCurrentWeek={setCurrentWeek} 
-              elements={BIM_ELEMENTS_LOOKUP}
-              anomalies={SITE_ANOMALIES}
+          {/* TAB 4: Site Progress Details View */}
+          {activeTab === "site-progress" && (
+            <div className="flex flex-col gap-6 animate-fade-in" id="site-progress-tab">
+              <DashboardMetrics 
+                stats={activeProject} 
+                currentWeek={currentWeek} 
+                setCurrentWeek={setCurrentWeek} 
+                elements={BIM_ELEMENTS_LOOKUP}
+                anomalies={SITE_ANOMALIES}
+              />
+            </div>
+          )}
+
+          {/* TAB 5: AI Computer Vision Analysis */}
+          {activeTab === "ai-analysis" && (
+            <AIAnomalyCenter 
+              anomalies={filteredAnomalies}
+              selectedElement={selectedElement}
+              onSelectAnomaly={handleSelectAnomalyDirect}
+              selectedAnomaly={selectedAnomaly}
             />
+          )}
 
+          {/* TAB 6: Gantt milestone schedules */}
+          {activeTab === "schedules" && (
+            <SchedulesView />
+          )}
+
+          {/* TAB 7: Activities (Physical audit trail logs) */}
+          {activeTab === "activities" && (
+            <AuditTrailViewer />
+          )}
+
+          {/* TAB 8: Customizable template reporting desk */}
+          {activeTab === "reports" && (
+            <ReportingCenter />
+          )}
+
+          {/* TAB 9: Quality Issues Ledger */}
+          {activeTab === "issues" && (
+            <IssuesView />
+          )}
+
+          {/* TAB 10: Warning notifications telemetry feed */}
+          {activeTab === "notifications" && (
+            <NotificationCenter />
+          )}
+
+          {/* TAB 11: Authorized users & Roles directory */}
+          {activeTab === "users" && (
+            <UsersView />
+          )}
+
+          {/* TAB 12: System preferences and API configs */}
+          {activeTab === "settings" && (
+            <SettingsView />
+          )}
+
+          {/* TAB 13: System Specs & Dev blueprints */}
+          {activeTab === "architecture" && (
+            <div className="flex flex-col gap-6 animate-fade-in" id="dev-blueprints-tab">
+              <TechArchitecture />
+              <ArchitectureExplorer />
+            </div>
+          )}
+
+          {/* TAB 14: Product Requirements specs */}
+          {activeTab === "prd" && (
+            <PRDViewer />
+          )}
+
+          {/* TAB 15: Version 1.0 roadmap timelines */}
+          {activeTab === "roadmap" && (
+            <RoadmapViewer />
+          )}
+
+        </main>
+
+        {/* COMPACT CLEAN FOOTER */}
+        <footer className="h-11 bg-white border-t border-slate-200 flex items-center justify-between px-6 text-[10px] text-slate-400 shrink-0 font-mono select-none">
+          <span>© 2026 BuildTrace India • Enterprise SaaS Platform</span>
+          <div className="flex gap-4">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Fast-API Connected</span>
+            <span>RERA Tracker: Active</span>
           </div>
-        )}
+        </footer>
 
-        {/* TAB 2: AI Anomaly Center */}
-        {activeTab === "ai" && (
-          <AIAnomalyCenter 
-            anomalies={SITE_ANOMALIES}
-            selectedElement={selectedElement}
-            onSelectAnomaly={handleSelectAnomalyDirect}
-            selectedAnomaly={selectedAnomaly}
-          />
-        )}
-
-        {/* TAB 3: Technical Architecture & Python Pipeline Logs */}
-        {activeTab === "architecture" && (
-          <TechArchitecture />
-        )}
-
-        {/* TAB 4: Product Requirements Document (PRD) */}
-        {activeTab === "prd" && (
-          <PRDViewer />
-        )}
-
-        {/* TAB 5: Production Roadmap to Version 1.0 */}
-        {activeTab === "roadmap" && (
-          <RoadmapViewer />
-        )}
-
-      </main>
-
-      {/* Styled Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-xs text-center mt-auto">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>© 2026 BuildTrace India - AI-driven Site Progress Monitoring Platform for Indian Infrastructure development.</p>
-          <div className="flex gap-4 font-mono text-[10px]">
-            <span>FastAPI: Online</span>
-            <span>PyTorch CUDA: Connected</span>
-            <span>RERA Tracker: Aligned</span>
-          </div>
-        </div>
-      </footer>
+      </div>
 
     </div>
   );

@@ -45,6 +45,7 @@ import {
 } from "recharts";
 import { useAppStore } from "../store";
 import AIInsightsComponent from "./AIInsightsComponent";
+import TracProgressDashboardView from "./TracProgressDashboardView";
 
 // Chart Data 1: Planned vs Actual Progress Trend
 const PROGRESS_TREND_DATA = [
@@ -74,7 +75,12 @@ const DISCREPANCY_DATA = [
 ];
 
 export default function DashboardView() {
-  const { activeProject, setActiveTab, currentWeek } = useAppStore();
+  const { activeProject, setActiveTab, currentWeek, isTracProgressMode } = useAppStore();
+
+  if (isTracProgressMode) {
+    return <TracProgressDashboardView />;
+  }
+
   const [filterTrade, setFilterTrade] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   

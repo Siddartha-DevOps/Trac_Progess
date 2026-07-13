@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # FastAPI Computer Vision Application
+  cv-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: buildtrace_cv_app
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://buildtrace_admin:secure_db_password_98231@postgres:5432/buildtrace_cv_prod
+      - REDIS_URL=redis://redis:6379/0
+      - AWS_REGION=ap-south-1
+      - S3_BUCKET_RAW_VIDEOS=buildtrace-mumbai-raw-walkthroughs
+      - S3_BUCKET_EXTRACTED_FRAMES=buildtrace-mumbai-processed-frames
+      - YOLO_WEIGHTS_PATH=/app/weights/yolov11x-seg.pt
+      - SAM_WEIGHTS_PATH=/app/weights/sam2_hiera_large.pt
+    volumes:
+      - cv_weights_volume:/app/weights
+      - cv_logs_volume:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - buildtrace_net
+    restart: always
+
+  # PostgreSQL Relational Database (Stores mapped spatial elements, anomalies and logs)
+  postgres:
+    image: postgres:16-alpine
+    container_name: buildtrace_cv_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=buildtrace_admin
+      - POSTGRES_PASSWORD=secure_db_password_98231
+      - POSTGRES_DB=buildtrace_cv_prod
+    volumes:
+      - pgdata_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buildtrace_admin -d buildtrace_cv_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - buildtrace_net
+    restart: always
+
+  # Redis Cache & Background Ingestion Task Broker
+  redis:
+    image: redis:7-alpine
+    container_name: buildtrace_cv_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redisdata_volume:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - buildtrace_net
+    restart: always
+
+  # LocalStack (Local S3 Emulator for development and local integration tests)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: buildtrace_cv_localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - AWS_DEFAULT_REGION=ap-south-1
+    volumes:
+      - localstack_volume:/var/lib/localstack
+    networks:
+      - buildtrace_net
+    restart: on-failure
+
+networks:
+  buildtrace_net:
+    driver: bridge
+
+volumes:
+  pgdata_volume:
+    driver: local
+  redisdata_volume:
+    driver: local
+  localstack_volume:
+    driver: local
+  cv_weights_volume:
+    driver: local
+  cv_logs_volume:
+    driver: local

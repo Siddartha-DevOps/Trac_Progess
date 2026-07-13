@@ -102,8 +102,22 @@ export default function BIMViewer({ onSelectElement, selectedElement, anomalies,
     };
     window.addEventListener("resize", handleResize);
 
+    // Custom Camera coordination listeners
+    const handleCameraCmd = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail === "zoom-in") {
+        engine.zoom("in");
+      } else if (customEvent.detail === "zoom-out") {
+        engine.zoom("out");
+      } else if (customEvent.detail === "reset") {
+        engine.resetCamera();
+      }
+    };
+    window.addEventListener("bim-viewer-camera-cmd", handleCameraCmd);
+
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("bim-viewer-camera-cmd", handleCameraCmd);
       engine.destroy();
       engineRef.current = null;
     };

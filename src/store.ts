@@ -17,7 +17,8 @@ export type TabType =
   | "settings"
   | "architecture"
   | "prd"
-  | "roadmap";
+  | "roadmap"
+  | "design-system";
 
 interface AppState {
   // Navigation & Layout
@@ -63,6 +64,12 @@ interface AppState {
   // Search
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+
+  // tracprogress® & Landing Page integration
+  showLandingPage: boolean;
+  setShowLandingPage: (show: boolean) => void;
+  isTracProgressMode: boolean;
+  setIsTracProgressMode: (mode: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -128,4 +135,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   searchQuery: "",
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  showLandingPage: true,
+  setShowLandingPage: (show) => set({ showLandingPage: show }),
+  isTracProgressMode: false,
+  setIsTracProgressMode: (mode) => set({ isTracProgressMode: mode }),
 }));

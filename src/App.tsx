@@ -12,7 +12,7 @@ import ArchitectureExplorer from "./components/ArchitectureExplorer";
 import BIMAnalyticsPanel from "./components/BIMAnalyticsPanel";
 import BIMTimelineComponent from "./components/BIMTimelineComponent";
 
-// Import new Buildots-inspired modular workspace views
+// Import new tracprogress®-inspired modular workspace views
 import DashboardView from "./components/DashboardView";
 import ProjectsView from "./components/ProjectsView";
 import SchedulesView from "./components/SchedulesView";
@@ -20,6 +20,8 @@ import IssuesView from "./components/IssuesView";
 import UsersView from "./components/UsersView";
 import SettingsView from "./components/SettingsView";
 import PremiumTopNavigation from "./components/PremiumTopNavigation";
+import DesignSystemView from "./components/DesignSystemView";
+import TracProgressLandingView from "./components/TracProgressLandingView";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
@@ -73,7 +75,11 @@ export default function App() {
     selectElementById,
     selectAnomalyById,
     searchQuery,
-    setSearchQuery
+    setSearchQuery,
+    showLandingPage,
+    setShowLandingPage,
+    isTracProgressMode,
+    setIsTracProgressMode
   } = useAppStore();
 
   const [rightPanelTab, setRightPanelTab] = useState<"analytics" | "inspector">("analytics");
@@ -104,42 +110,48 @@ export default function App() {
     );
   });
 
+  if (showLandingPage) {
+    return <TracProgressLandingView />;
+  }
+
   return (
-    <div className="h-screen w-screen flex bg-slate-50/60 overflow-hidden font-sans text-slate-800 antialiased selection:bg-indigo-600 selection:text-white">
+    <div className={`h-screen w-screen flex overflow-hidden font-sans antialiased selection:bg-indigo-600 selection:text-white ${isTracProgressMode ? "bg-slate-950 text-slate-100" : "bg-slate-50/60 text-slate-800"}`}>
       
-      {/* 1. COLLAPSIBLE LEFT SIDEBAR: Buildots-Inspired Enterprise Navigation */}
+      {/* 1. COLLAPSIBLE LEFT SIDEBAR: tracprogress® Enterprise Navigation */}
       <aside 
-        id="buildots-sidebar"
+        id="tracprogress-sidebar"
         aria-label="Main Navigation Sidebar"
-        className={`bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 select-none ${
+        className={`flex flex-col justify-between shrink-0 transition-all duration-300 z-30 select-none ${
           isSidebarExpanded ? "w-64" : "w-16"
-        }`}
+        } ${isTracProgressMode ? "bg-slate-900 border-r border-slate-800 text-slate-200" : "bg-white border-r border-slate-200 text-slate-800"}`}
       >
         <div className="flex flex-col overflow-y-auto overflow-x-hidden flex-1 scrollbar-thin">
           
           {/* Logo & Platform Context */}
-          <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-100 shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-sm">
-              <Building2 className="w-5 h-5 text-indigo-500" />
+          <div className={`h-16 flex items-center gap-3 px-4 shrink-0 ${isTracProgressMode ? "border-b border-slate-800 bg-slate-900" : "border-b border-slate-100 bg-white"}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm ${isTracProgressMode ? "bg-indigo-600" : "bg-slate-900"}`}>
+              <Building2 className={`w-5 h-5 ${isTracProgressMode ? "text-white" : "text-indigo-500"}`} />
             </div>
             {isSidebarExpanded && (
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-slate-900 tracking-tight leading-none">BuildTrace</span>
-                <span className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider mt-1">Enterprise Suite</span>
+                <span className={`text-xs font-bold tracking-tight leading-none ${isTracProgressMode ? "text-white" : "text-slate-900"}`}>
+                  {isTracProgressMode ? "tracprogress® Portal" : "tracprogress"}
+                </span>
+                <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider mt-1">Enterprise Suite</span>
               </div>
             )}
           </div>
 
           {/* Project Details context (Only if expanded) */}
           {isSidebarExpanded && (
-            <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className={`p-4 flex flex-col gap-2 shrink-0 ${isTracProgressMode ? "bg-slate-900/60 border-b border-slate-800" : "bg-slate-50/50 border-b border-slate-100"}`}>
+              <div className={`flex items-center gap-1.5 text-xs ${isTracProgressMode ? "text-slate-300" : "text-slate-500"}`}>
+                <MapPin className={`w-3.5 h-3.5 shrink-0 ${isTracProgressMode ? "text-indigo-400" : "text-slate-400"}`} />
                 <span className="font-semibold truncate">{activeProject.name}</span>
               </div>
-              <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-0.5">
-                <span>RERA ID:</span>
-                <span className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 font-semibold">{activeProject.reraId}</span>
+              <div className="flex justify-between items-center text-[10px] font-mono mt-0.5">
+                <span className={`${isTracProgressMode ? "text-slate-400" : "text-slate-400"}`}>RERA ID:</span>
+                <span className={`px-1.5 py-0.5 rounded border font-semibold ${isTracProgressMode ? "bg-slate-950 border-slate-800 text-slate-300" : "bg-white border-slate-200 text-slate-600"}`}>{activeProject.reraId}</span>
               </div>
             </div>
           )}
@@ -419,6 +431,20 @@ export default function App() {
                   <Milestone className={`w-4 h-4 shrink-0 ${activeTab === "roadmap" ? "text-white" : "text-slate-400"}`} />
                   {isSidebarExpanded && <span>v1.0 Roadmap</span>}
                 </button>
+
+                <button
+                  onClick={() => setActiveTab("design-system")}
+                  aria-current={activeTab === "design-system" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "design-system"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Interactive Design System Showcase"
+                >
+                  <Sparkles className={`w-4 h-4 shrink-0 ${activeTab === "design-system" ? "text-white animate-pulse" : "text-indigo-500 animate-pulse"}`} />
+                  {isSidebarExpanded && <span>Design System</span>}
+                </button>
               </div>
             </div>
 
@@ -626,11 +652,11 @@ export default function App() {
                           )}
                         </div>
 
-                        {/* Informational Callout matching Buildots quality */}
+                        {/* Informational Callout matching tracprogress® quality */}
                         <div className="p-3.5 bg-slate-900 text-white rounded-lg flex flex-col gap-1 text-[10px] leading-relaxed mt-4 font-sans shrink-0">
                           <span className="font-bold text-indigo-400 block uppercase tracking-wider text-[8px] font-mono">Photogrammetry sync engine</span>
                           <p className="text-slate-300">
-                            BuildTrace compares orthomosaics with standard design coordinates using instance-segmentation to log physical quantities.
+                            tracprogress compares orthomosaics with standard design coordinates using instance-segmentation to log physical quantities.
                           </p>
                         </div>
                       </div>
@@ -729,11 +755,16 @@ export default function App() {
             <RoadmapViewer />
           )}
 
+          {/* TAB 16: Interactive Design System Showcase */}
+          {activeTab === "design-system" && (
+            <DesignSystemView />
+          )}
+
         </main>
 
         {/* COMPACT CLEAN FOOTER */}
         <footer className="h-11 bg-white border-t border-slate-200 flex items-center justify-between px-6 text-[10px] text-slate-400 shrink-0 font-mono select-none">
-          <span>© 2026 BuildTrace India • Enterprise SaaS Platform</span>
+          <span>© 2026 tracprogress • Enterprise SaaS Platform</span>
           <div className="flex gap-4">
             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Fast-API Connected</span>
             <span>RERA Tracker: Active</span>

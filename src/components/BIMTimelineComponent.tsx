@@ -138,6 +138,9 @@ export default function BIMTimelineComponent({
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [comparisonSliderVal, setComparisonSliderVal] = useState<number>(50); // percentage split
   
+  const activeMilestone = MILESTONES[currentWeek - 1] || MILESTONES[0];
+  const activeVideoFeed = VIDEO_FEEDS[currentWeek - 1] || VIDEO_FEEDS[0];
+  
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto playback loop logic
@@ -176,49 +179,216 @@ export default function BIMTimelineComponent({
 
   const handleSpeedChange = (ms: number) => {
     setPlaySpeed(ms);
-  };
-
-  // Active Milestone calculations
-  const activeMilestone = MILESTONES[currentWeek - 1];
-  const activeVideoFeed = VIDEO_FEEDS[currentWeek - 1];
-
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-5 text-slate-800">
+  };  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-4 text-slate-800">
       
-      {/* SECTION 1: HEADER & OPTIONS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div>
+      {/* Horizontal Layout Dock (5 Main Sections) */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch divide-y xl:divide-y-0 xl:divide-x divide-slate-100">
+        
+        {/* Section 1: Playback Timeline (xl:col-span-3) */}
+        <div className="xl:col-span-3 flex flex-col gap-1.5 justify-center pr-3">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+            Playback Timeline
+          </span>
           <div className="flex items-center gap-2">
-            <span className="p-1 rounded bg-indigo-50 text-indigo-600">
-              <Calendar className="w-4 h-4" />
-            </span>
-            <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-              Photogrammetry Timeline Control Center
-            </h3>
+            <button
+              onClick={resetTimeline}
+              title="Reset to Week 1"
+              className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 transition shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-95"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            
+            <button
+              onClick={togglePlayback}
+              className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] ${
+                isPlaying 
+                  ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100/50" 
+                  : "bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-700"
+              }`}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="w-3.5 h-3.5 fill-red-600 stroke-none" />
+                  <span>Pause Loop</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-white stroke-none" />
+                  <span>Play Timeline</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={stepForward}
+              title="Step Forward (1 Week)"
+              className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 transition shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-95"
+            >
+              <FastForward className="w-4 h-4" />
+            </button>
+
+            {/* Speed Multiplier badge */}
+            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200 shrink-0">
+              <button
+                onClick={() => handleSpeedChange(1500)}
+                className={`px-1.5 py-1 text-[8px] font-black rounded transition ${
+                  playSpeed === 1500 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                0.5x
+              </button>
+              <button
+                onClick={() => handleSpeedChange(1000)}
+                className={`px-1.5 py-1 text-[8px] font-black rounded transition ${
+                  playSpeed === 1000 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                1x
+              </button>
+              <button
+                onClick={() => handleSpeedChange(500)}
+                className={`px-1.5 py-1 text-[8px] font-black rounded transition ${
+                  playSpeed === 500 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                2x
+              </button>
+            </div>
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5">
-            Synchronize 3D BIM coordination models with historical drone video reels & laser-scans
-          </p>
         </div>
 
-        {/* COMPARISON AND OPTIONS */}
-        <div className="flex items-center gap-2">
+        {/* Section 2: Progress Slider (xl:col-span-3) */}
+        <div className="xl:col-span-3 flex flex-col gap-1.5 justify-center px-4 pt-3 xl:pt-0">
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+              Progress Slider
+            </span>
+            <span className="text-[9.5px] font-bold font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded-full border border-indigo-100">
+              Week {currentWeek} of 5
+            </span>
+          </div>
+
+          <div className="relative w-full py-2">
+            {/* Background slider track */}
+            <div className="absolute top-1/2 left-0 right-0 h-1.5 -translate-y-1/2 bg-slate-100 rounded-full border border-slate-200/50" />
+            
+            {/* Active filled track indicator */}
+            <div 
+              className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 bg-indigo-600 rounded-full transition-all duration-300"
+              style={{ width: `${(currentWeek - 1) * 25}%` }}
+            />
+
+            {/* Slider Input */}
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value={currentWeek}
+              onChange={(e) => {
+                setIsPlaying(false);
+                setCurrentWeek(parseInt(e.target.value));
+              }}
+              className="w-full h-8 relative z-10 appearance-none bg-transparent cursor-pointer outline-none focus:outline-none accent-indigo-600"
+              style={{ margin: 0 }}
+            />
+
+            {/* Slider Ticks labels */}
+            <div className="flex justify-between px-1 mt-0.5 text-[8.5px] font-bold text-slate-400 font-mono">
+              {MILESTONES.map((milestone) => (
+                <button
+                  key={milestone.week}
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setCurrentWeek(milestone.week);
+                  }}
+                  className={`flex flex-col items-center gap-0.5 focus:outline-none transition-all ${
+                    currentWeek === milestone.week ? "text-indigo-600 scale-105" : "hover:text-slate-700"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full border border-white shadow-sm transition ${
+                    currentWeek === milestone.week 
+                      ? "bg-indigo-600 scale-125 ring-2 ring-indigo-200" 
+                      : milestone.status === "completed" ? "bg-emerald-500" : milestone.status === "delayed" ? "bg-red-500" : "bg-slate-300"
+                  }`} />
+                  <span>Wk {milestone.week}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Dates (xl:col-span-2) */}
+        <div className="xl:col-span-2 flex flex-col gap-1 justify-center px-4 pt-3 xl:pt-0">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+            Dates
+          </span>
+          <div className="bg-slate-50 border border-slate-150 rounded-lg p-2 flex flex-col gap-0.5 text-left">
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] text-slate-400 font-semibold uppercase">Scan Range:</span>
+              <span className="text-[8px] bg-indigo-50 text-indigo-700 font-mono font-bold px-1 rounded uppercase">Live</span>
+            </div>
+            <p className="text-[10px] font-extrabold text-slate-700 font-mono truncate">
+              {activeMilestone.date}
+            </p>
+            <span className="text-[8px] text-slate-400 font-sans truncate leading-none">
+              Target: {activeMilestone.title}
+            </span>
+          </div>
+        </div>
+
+        {/* Section 4: Compare (xl:col-span-2) */}
+        <div className="xl:col-span-2 flex flex-col gap-1.5 justify-center px-4 pt-3 xl:pt-0">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+            Compare
+          </span>
           <button
             onClick={() => setIsComparisonMode(!isComparisonMode)}
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition border ${
+            className={`w-full py-2.5 px-3 rounded-lg text-[10px] font-extrabold flex items-center justify-center gap-1.5 transition border active:scale-[0.98] ${
               isComparisonMode 
                 ? "bg-indigo-600 text-white border-indigo-700 shadow-sm" 
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
             }`}
           >
-            <Split className="w-3.5 h-3.5" />
-            <span>{isComparisonMode ? "Disable Comparison" : "BIM vs Scan Comparison"}</span>
+            <Split className="w-3.5 h-3.5 text-indigo-500 group-hover:text-white" />
+            <span>{isComparisonMode ? "CAD vs Scan On" : "Compare Mode"}</span>
           </button>
-          
-          <span className="text-[9px] bg-slate-100 border border-slate-200 text-slate-500 font-bold px-2 py-1 rounded font-mono">
-            RERA COMPLIANT
-          </span>
         </div>
+
+        {/* Section 5: Camera Controls (xl:col-span-2) */}
+        <div className="xl:col-span-2 flex flex-col gap-1.5 justify-center pl-4 pt-3 xl:pt-0">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+            Camera Controls
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("bim-viewer-camera-cmd", { detail: "zoom-in" }))}
+              title="Zoom In Model"
+              className="flex-1 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center justify-center gap-1 transition text-[10px] font-bold active:scale-95"
+            >
+              <Camera className="w-3 h-3 text-indigo-500" />
+              <span>In</span>
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("bim-viewer-camera-cmd", { detail: "zoom-out" }))}
+              title="Zoom Out Model"
+              className="flex-1 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center justify-center gap-1 transition text-[10px] font-bold active:scale-95"
+            >
+              <Camera className="w-3 h-3 text-indigo-400" />
+              <span>Out</span>
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("bim-viewer-camera-cmd", { detail: "reset" }))}
+              title="Reset View"
+              className="flex-1 py-2 bg-slate-900 border border-slate-950 hover:bg-slate-800 rounded-lg text-white flex items-center justify-center gap-1 transition text-[10px] font-bold active:scale-95"
+            >
+              <Compass className="w-3 h-3 text-yellow-300" />
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* SECTION 2: COMPARISON OVERLAY (IF ENABLED) */}
@@ -339,395 +509,186 @@ export default function BIMTimelineComponent({
         </div>
       )}
 
-      {/* SECTION 3: PLAYBACK CONTROLS & TIMELINE SLIDER */}
-      <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col gap-4">
+      {/* Advanced Telemetry Drawer - Interactive Accordion */}
+      <details className="group bg-slate-50/50 border border-slate-150 rounded-xl overflow-hidden transition-all duration-300">
+        <summary className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center justify-between cursor-pointer select-none">
+          <div className="flex items-center gap-2">
+            <Video className="w-4 h-4 text-indigo-500 shrink-0" />
+            <span>Show Ortho-Scan Timeline &amp; Milestone Roadmap</span>
+          </div>
+          <span className="text-[9px] font-mono bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full transition group-open:rotate-180">
+            Expand Details
+          </span>
+        </summary>
         
-        {/* Playback Controls and Dates */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-t border-slate-150 flex flex-col gap-4 bg-white animate-fade-in">
           
-          {/* Main Play/Pause Actions */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={resetTimeline}
-              title="Reset Timeline to Week 1"
-              className="p-2 bg-white border border-slate-250 hover:bg-slate-100 rounded-lg text-slate-600 transition shadow-sm"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-            
-            <button
-              onClick={togglePlayback}
-              className={`px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition shadow-sm ${
-                isPlaying 
-                  ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100/50" 
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-3.5 h-3.5 fill-red-600 stroke-none" />
-                  <span>Pause Loop</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5 fill-white stroke-none" />
-                  <span>Play Timeline</span>
-                </>
-              )}
-            </button>
+          {/* Drone Previews Grid */}
+          <div className="flex flex-col gap-2.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+              Visual Drone Scans Synchronized
+            </span>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {VIDEO_FEEDS.map((feed) => {
+                const isSelected = feed.week === currentWeek;
+                const milestone = MILESTONES[feed.week - 1];
+                
+                return (
+                  <div
+                    key={feed.week}
+                    onClick={() => {
+                      setIsPlaying(false);
+                      setCurrentWeek(feed.week);
+                    }}
+                    className={`group relative overflow-hidden rounded-xl border p-3 cursor-pointer transition-all duration-300 flex flex-col justify-between h-[115px] ${
+                      isSelected 
+                        ? "bg-indigo-900 border-indigo-600 text-white shadow-md ring-2 ring-indigo-200" 
+                        : "bg-slate-900/95 border-slate-800 text-slate-300 hover:border-slate-600 hover:bg-slate-950"
+                    }`}
+                  >
+                    <div className="absolute -right-3 -bottom-3 opacity-[0.06] text-white">
+                      <Camera className="w-16 h-16" />
+                    </div>
 
-            <button
-              onClick={stepForward}
-              title="Step Forward (1 Week)"
-              className="p-2 bg-white border border-slate-250 hover:bg-slate-100 rounded-lg text-slate-600 transition shadow-sm"
-            >
-              <FastForward className="w-4 h-4" />
-            </button>
+                    <div className="flex justify-between items-start gap-1">
+                      <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded font-extrabold uppercase border ${
+                        isSelected 
+                          ? "bg-indigo-950 text-indigo-300 border-indigo-800" 
+                          : milestone.status === "completed" 
+                          ? "bg-emerald-950/60 text-emerald-400 border-emerald-900/60" 
+                          : milestone.status === "delayed" 
+                          ? "bg-red-950/60 text-red-400 border-red-900/60" 
+                          : "bg-slate-950 text-slate-500 border-slate-900"
+                      }`}>
+                        Wk {feed.week}
+                      </span>
+                      
+                      <span className="text-[8.5px] font-mono text-slate-400 flex items-center gap-0.5">
+                        <ShieldCheck className={`w-3 h-3 ${isSelected ? "text-indigo-300" : "text-emerald-500"}`} />
+                        {feed.quality}
+                      </span>
+                    </div>
 
-            {/* Speeds */}
-            <div className="bg-slate-200/60 p-0.5 rounded-lg flex items-center border border-slate-200">
-              <button
-                onClick={() => handleSpeedChange(2000)}
-                className={`px-2 py-1 text-[9px] font-extrabold rounded transition ${
-                  playSpeed === 2000 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                0.5x
-              </button>
-              <button
-                onClick={() => handleSpeedChange(1000)}
-                className={`px-2 py-1 text-[9px] font-extrabold rounded transition ${
-                  playSpeed === 1000 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                1.0x
-              </button>
-              <button
-                onClick={() => handleSpeedChange(500)}
-                className={`px-2 py-1 text-[9px] font-extrabold rounded transition ${
-                  playSpeed === 500 ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                2.0x
-              </button>
+                    <div className="my-1 text-center flex justify-center items-center">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                        isSelected 
+                          ? "bg-white text-indigo-950 scale-110" 
+                          : "bg-slate-800 text-slate-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105"
+                      }`}>
+                        <Play className="w-3 h-3 fill-current stroke-none ml-0.5" />
+                      </span>
+                    </div>
+
+                    <div className="relative z-10">
+                      <p className={`text-[9.5px] font-bold truncate leading-snug ${isSelected ? "text-white" : "text-slate-100 group-hover:text-white"}`}>
+                        {feed.title}
+                      </p>
+                      <div className="flex justify-between text-[8px] text-slate-400 font-mono mt-0.5">
+                        <span>{feed.cameraAngle}</span>
+                        <span>{feed.duration}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Target Dates Range indicator */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400">Date Window:</span>
-            <span className="font-extrabold text-slate-700 font-mono bg-white border border-slate-150 px-2.5 py-1 rounded-md">
-              {MILESTONES[0].date}
-            </span>
-            <span className="text-slate-300 font-mono">—</span>
-            <span className="font-extrabold text-indigo-600 font-mono bg-indigo-50 border border-indigo-150 px-2.5 py-1 rounded-md">
-              {activeMilestone.date} (Active)
-            </span>
-          </div>
-
-          {/* Stage status indicator badge */}
-          <div>
-            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border ${
-              activeMilestone.status === "completed"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : activeMilestone.status === "delayed"
-                ? "bg-red-50 text-red-700 border-red-200"
-                : "bg-slate-100 text-slate-500 border-slate-200"
-            }`}>
-              Week {currentWeek}: {activeMilestone.status}
-            </span>
-          </div>
-        </div>
-
-        {/* The Progress Slider with Ticks */}
-        <div className="flex flex-col gap-2 mt-2">
-          <div className="relative w-full px-2">
-            
-            {/* Background slider track */}
-            <div className="absolute top-1/2 left-2 right-2 h-1.5 -translate-y-1/2 bg-slate-200 rounded-full" />
-            
-            {/* Active filled track indicator */}
-            <div 
-              className="absolute top-1/2 left-2 h-1.5 -translate-y-1/2 bg-indigo-600 rounded-full transition-all duration-300"
-              style={{ width: `calc(${(currentWeek - 1) * 25}%` }}
-            />
-
-            {/* Hidden Input Slider overlaid */}
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={currentWeek}
-              onChange={(e) => {
-                setIsPlaying(false);
-                setCurrentWeek(parseInt(e.target.value));
-              }}
-              className="w-full h-8 relative z-10 appearance-none bg-transparent cursor-pointer outline-none focus:outline-none accent-indigo-600"
-            />
-
-            {/* Slider Ticks labels */}
-            <div className="flex justify-between px-1 mt-1 text-[10px] font-bold text-slate-400">
-              {MILESTONES.map((milestone) => (
-                <button
+          {/* Milestones grid */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 mt-2">
+            {MILESTONES.map((milestone) => {
+              const isSelected = milestone.week === currentWeek;
+              
+              return (
+                <div
                   key={milestone.week}
                   onClick={() => {
                     setIsPlaying(false);
                     setCurrentWeek(milestone.week);
                   }}
-                  className={`flex flex-col items-center gap-0.5 focus:outline-none transition-all ${
-                    currentWeek === milestone.week 
-                      ? "text-indigo-600 scale-105" 
-                      : "hover:text-slate-700"
+                  className={`bg-white rounded-xl p-3 border hover:border-indigo-200 transition cursor-pointer text-left flex flex-col justify-between min-h-[130px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] ${
+                    isSelected ? "border-indigo-600 ring-2 ring-indigo-50" : "border-slate-200"
                   }`}
                 >
-                  <span className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm transition ${
-                    currentWeek === milestone.week 
-                      ? "bg-indigo-600 scale-125 ring-2 ring-indigo-200" 
-                      : milestone.status === "completed" ? "bg-emerald-500" : milestone.status === "delayed" ? "bg-red-500" : "bg-slate-300"
-                  }`} />
-                  <span className="font-mono mt-0.5">Wk {milestone.week}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[8px] font-mono font-bold text-slate-400">STAGE {milestone.week}</span>
+                      <span className={`w-2 h-2 rounded-full ${
+                        milestone.status === "completed" ? "bg-emerald-500" : milestone.status === "delayed" ? "bg-red-500" : "bg-slate-300"
+                      }`} />
+                    </div>
 
-      {/* SECTION 4: THE VIDEO TIMELINE & DRONE PREVIEWS */}
-      <div className="flex flex-col gap-2.5">
-        <div className="flex justify-between items-center">
-          <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Video className="w-4 h-4 text-indigo-500" />
-            Drone Orthomosaic & Visual Video Timeline
-          </span>
-          <span className="text-[9px] text-slate-400 font-bold uppercase font-mono bg-slate-100 border border-slate-200/60 px-1.5 py-0.5 rounded">
-            5 Scans Synchronized
-          </span>
-        </div>
+                    <h4 className="text-[11px] font-bold text-slate-800 font-sans line-clamp-1 mb-0.5">
+                      {milestone.title}
+                    </h4>
+                    <p className="text-[9.5px] text-slate-400 line-clamp-2 leading-relaxed mb-1.5">
+                      {milestone.shortDesc}
+                    </p>
+                  </div>
 
-        {/* Video Thumbnail Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {VIDEO_FEEDS.map((feed) => {
-            const isSelected = feed.week === currentWeek;
-            const milestone = MILESTONES[feed.week - 1];
-            
-            return (
-              <div
-                key={feed.week}
-                onClick={() => {
-                  setIsPlaying(false);
-                  setCurrentWeek(feed.week);
-                }}
-                className={`group relative overflow-hidden rounded-xl border p-3 cursor-pointer transition-all duration-300 flex flex-col justify-between h-[115px] ${
-                  isSelected 
-                    ? "bg-indigo-900 border-indigo-600 text-white shadow-md ring-2 ring-indigo-200" 
-                    : "bg-slate-900/95 border-slate-800 text-slate-300 hover:border-slate-600 hover:bg-slate-950"
-                }`}
-              >
-                {/* Visual Camera lens representation overlay on card background */}
-                <div className="absolute -right-3 -bottom-3 opacity-[0.06] text-white">
-                  <Camera className="w-20 h-20" />
-                </div>
-
-                {/* Top header on thumbnail */}
-                <div className="flex justify-between items-start gap-1">
-                  <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded font-extrabold uppercase border ${
-                    isSelected 
-                      ? "bg-indigo-950 text-indigo-300 border-indigo-800" 
-                      : milestone.status === "completed" 
-                      ? "bg-emerald-950/60 text-emerald-400 border-emerald-900/60" 
-                      : milestone.status === "delayed" 
-                      ? "bg-red-950/60 text-red-400 border-red-900/60" 
-                      : "bg-slate-950 text-slate-500 border-slate-900"
-                  }`}>
-                    Wk {feed.week}
-                  </span>
-                  
-                  {/* Drone GPS accuracy quality indicator */}
-                  <span className="text-[8.5px] font-mono text-slate-400 flex items-center gap-0.5">
-                    <ShieldCheck className={`w-3 h-3 ${isSelected ? "text-indigo-300" : "text-emerald-500"}`} />
-                    {feed.quality}
-                  </span>
-                </div>
-
-                {/* Play button indicator overlay */}
-                <div className="my-1 text-center flex justify-center items-center">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                    isSelected 
-                      ? "bg-white text-indigo-950 scale-110" 
-                      : "bg-slate-800 text-slate-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105"
-                  }`}>
-                    <Play className="w-3 h-3 fill-current stroke-none ml-0.5" />
-                  </span>
-                </div>
-
-                {/* Bottom title & details */}
-                <div className="relative z-10">
-                  <p className={`text-[9.5px] font-bold truncate leading-snug ${isSelected ? "text-white" : "text-slate-100 group-hover:text-white"}`}>
-                    {feed.title}
-                  </p>
-                  
-                  <div className="flex justify-between text-[8px] text-slate-400 font-mono mt-0.5">
-                    <span>{feed.cameraAngle}</span>
-                    <span>{feed.duration}</span>
+                  <div className="border-t border-slate-100 pt-2 flex flex-col gap-1">
+                    <div className="flex justify-between text-[9px] font-mono">
+                      <span className="text-slate-400">Progress</span>
+                      <span className="font-bold text-slate-700">{milestone.progress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          milestone.status === "completed" ? "bg-emerald-500" : milestone.status === "delayed" ? "bg-red-500" : "bg-indigo-600"
+                        }`}
+                        style={{ width: `${milestone.progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
+          {/* Active Summary detail row */}
+          <div className="bg-slate-900 text-white rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center relative overflow-hidden mt-2">
+            <div className="md:col-span-8 flex flex-col gap-1.5 z-10 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                  WEEK {currentWeek} DETAIL LOGS
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Verified Scan: {activeMilestone.date}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <h3 className="text-xs font-bold text-white leading-snug">
+                {activeMilestone.title}
+              </h3>
+              <p className="text-[10.5px] text-slate-300 leading-relaxed font-sans max-w-2xl">
+                {activeMilestone.detail}
+              </p>
+            </div>
 
-      {/* SECTION 5: MILESTONES ROADMAP GRID */}
-      <div className="bg-slate-50/60 border border-slate-150 p-4 rounded-xl">
-        <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mb-3">
-          <Activity className="w-4 h-4 text-indigo-500" />
-          Scheduled Milestones Detail Block
-        </span>
-
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5">
-          {MILESTONES.map((milestone) => {
-            const isSelected = milestone.week === currentWeek;
-            
-            return (
-              <div
-                key={milestone.week}
-                onClick={() => {
-                  setIsPlaying(false);
-                  setCurrentWeek(milestone.week);
-                }}
-                className={`bg-white rounded-xl p-3 border hover:border-indigo-200 transition cursor-pointer text-left flex flex-col justify-between min-h-[140px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] ${
-                  isSelected 
-                    ? "border-indigo-600 ring-2 ring-indigo-50" 
-                    : "border-slate-200"
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[8px] font-mono font-bold text-slate-400">STAGE {milestone.week}</span>
-                    <span className={`w-2.5 h-2.5 rounded-full ${
-                      milestone.status === "completed" 
-                        ? "bg-emerald-500" 
-                        : milestone.status === "delayed" 
-                        ? "bg-red-500" 
-                        : "bg-slate-300"
-                    }`} />
-                  </div>
-
-                  <h4 className="text-[11px] font-bold text-slate-800 font-sans line-clamp-1 mb-0.5">
-                    {milestone.title}
-                  </h4>
-                  
-                  <p className="text-[9.5px] text-slate-400 line-clamp-2 leading-relaxed mb-1.5">
-                    {milestone.shortDesc}
-                  </p>
+            <div className="md:col-span-4 bg-slate-950/60 p-3 rounded-lg border border-slate-850 flex flex-col gap-2 z-10">
+              <span className="text-[9px] uppercase tracking-wider text-slate-500 font-extrabold block text-left">
+                Scan Velocity metrics
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="bg-slate-900 border border-slate-800 p-1.5 rounded flex flex-col justify-center">
+                  <span className="text-[8px] text-slate-500 font-bold block uppercase leading-none">CV Confidence</span>
+                  <span className="text-xs font-extrabold text-indigo-400 font-mono mt-0.5">
+                    {activeVideoFeed.quality}
+                  </span>
                 </div>
-
-                <div className="border-t border-slate-100 pt-2 flex flex-col gap-1.5">
-                  {/* Gauge Progress percent bar */}
-                  <div className="flex justify-between text-[9px] font-mono">
-                    <span className="text-slate-400">Progress</span>
-                    <span className="font-bold text-slate-700">{milestone.progress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        milestone.status === "completed"
-                          ? "bg-emerald-500"
-                          : milestone.status === "delayed"
-                          ? "bg-red-500"
-                          : "bg-indigo-600"
-                      }`}
-                      style={{ width: `${milestone.progress}%` }}
-                    />
-                  </div>
+                <div className="bg-slate-900 border border-slate-800 p-1.5 rounded flex flex-col justify-center">
+                  <span className="text-[8px] text-slate-500 font-bold block uppercase leading-none">RERA Stage Status</span>
+                  <span className={`text-[9.5px] font-extrabold font-mono mt-0.5 uppercase ${
+                    activeMilestone.status === "completed" ? "text-emerald-400" : activeMilestone.status === "delayed" ? "text-red-400" : "text-slate-400"
+                  }`}>
+                    {activeMilestone.status}
+                  </span>
                 </div>
-
               </div>
-            );
-          })}
+            </div>
+          </div>
+
         </div>
-      </div>
-
-      {/* SECTION 6: WEEKLY PROGRESS ACTIVE STATUS CARD */}
-      <div className="bg-slate-900 text-white rounded-xl p-4.5 grid grid-cols-1 md:grid-cols-12 gap-5 items-center relative overflow-hidden">
-        
-        {/* Subtle decorative grid in bg */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]" />
-
-        {/* Column 1: Active details (8 Cols) */}
-        <div className="md:col-span-8 flex flex-col gap-2 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded font-mono font-bold">
-              WEEK {currentWeek} DETAILS
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">
-              Verified Scan: {activeMilestone.date}
-            </span>
-          </div>
-
-          <h3 className="text-sm font-bold text-white leading-snug">
-            {activeMilestone.title}
-          </h3>
-          
-          <p className="text-[11px] text-slate-300 leading-relaxed font-sans max-w-2xl">
-            {activeMilestone.detail}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] text-slate-400 mt-1 font-mono">
-            <div className="flex items-center gap-1">
-              <Camera className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Pilot Feed: <strong className="text-slate-200">{activeVideoFeed.pilot}</strong></span>
-            </div>
-            <span className="text-slate-700">|</span>
-            <div className="flex items-center gap-1">
-              <Compass className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Angle: <strong className="text-slate-200">{activeVideoFeed.cameraAngle}</strong></span>
-            </div>
-            <span className="text-slate-700">|</span>
-            <div className="flex items-center gap-1">
-              <Map className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Target Finish: <strong className="text-indigo-300">{activeMilestone.date}</strong></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Column 2: Weekly Progress Stats Indicators (4 Cols) */}
-        <div className="md:col-span-4 bg-slate-950/60 p-4 rounded-lg border border-slate-800/80 flex flex-col gap-3 relative z-10">
-          <span className="text-[9px] uppercase tracking-wider text-slate-500 font-extrabold block">
-            Velocity Stats
-          </span>
-
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="bg-slate-900 border border-slate-800 p-2 rounded flex flex-col justify-center">
-              <span className="text-[9px] text-slate-500 font-bold block uppercase leading-none">CV Scan Match</span>
-              <span className="text-[15px] font-extrabold text-indigo-400 font-mono mt-1">
-                {activeVideoFeed.quality}
-              </span>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 p-2 rounded flex flex-col justify-center">
-              <span className="text-[9px] text-slate-500 font-bold block uppercase leading-none">Milestone status</span>
-              <span className={`text-[10px] font-extrabold font-mono mt-1.5 uppercase ${
-                activeMilestone.status === "completed" 
-                  ? "text-emerald-400" 
-                  : activeMilestone.status === "delayed" 
-                  ? "text-red-400" 
-                  : "text-slate-400"
-              }`}>
-                {activeMilestone.status}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 p-2 rounded-lg flex items-center justify-between text-[10px] font-mono text-slate-400">
-            <span>Stage Accuracy Index:</span>
-            <span className="font-extrabold text-white">99.82% ANSI</span>
-          </div>
-        </div>
-
-      </div>
+      </details>
 
     </div>
   );

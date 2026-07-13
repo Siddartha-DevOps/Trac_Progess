@@ -23,7 +23,9 @@ import {
   MessageSquare,
   ArrowRight,
   RefreshCw,
-  Info
+  Info,
+  Smartphone,
+  Home
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { motion, AnimatePresence } from "motion/react";
@@ -77,7 +79,7 @@ const PROJECTS_DB = [
 
 // Organizations List
 const ORGANIZATIONS = [
-  { id: "buildtrace", name: "BuildTrace India Ltd", logo: "BT", type: "Parent Developer" },
+  { id: "buildtrace", name: "tracprogress India Ltd", logo: "TP", type: "Parent Developer" },
   { id: "innospace", name: "InnoSpace Infra Corp", logo: "IS", type: "Joint Venture Partner" },
   { id: "dlf-partner", name: "DLF Project Management", logo: "DP", type: "General Contractor" }
 ];
@@ -89,7 +91,11 @@ export default function PremiumTopNavigation() {
     searchQuery, 
     setSearchQuery,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    isTracProgressMode,
+    setIsTracProgressMode,
+    showLandingPage,
+    setShowLandingPage
   } = useAppStore();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -151,7 +157,7 @@ export default function PremiumTopNavigation() {
       const data = await res.json();
       setAiResponse(data.report);
     } catch (err: any) {
-      setAiResponse(`Failed to contact BuildTrace AI Assistant: ${err.message || err}`);
+      setAiResponse(`Failed to contact tracprogress AI Assistant: ${err.message || err}`);
     } finally {
       setAiLoading(false);
     }
@@ -180,7 +186,11 @@ export default function PremiumTopNavigation() {
   };
 
   return (
-    <header className="h-16 border-b shrink-0 flex items-center justify-between px-6 z-30 transition-all duration-300 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+    <header className={`h-16 border-b shrink-0 flex items-center justify-between px-6 z-30 transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${
+      isTracProgressMode 
+        ? "bg-slate-900 border-slate-800 text-slate-100" 
+        : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-800"
+    }`}>
       
       {/* LEFT SECTION: Organization & Project Selector */}
       <div className="flex items-center gap-3">
@@ -189,7 +199,11 @@ export default function PremiumTopNavigation() {
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button 
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition duration-200 cursor-pointer bg-slate-50/50 hover:bg-slate-50 border-slate-200 hover:border-slate-300 dark:bg-slate-800/40 dark:border-slate-800 dark:hover:bg-slate-800"
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition duration-200 cursor-pointer ${
+                isTracProgressMode 
+                  ? "bg-slate-950 border-slate-800 text-slate-200 hover:bg-slate-900" 
+                  : "bg-slate-50/50 hover:bg-slate-50 border-slate-200 hover:border-slate-300 dark:bg-slate-800/40 dark:border-slate-800 dark:hover:bg-slate-800"
+              }`}
               aria-label="Switch Organization"
             >
               <div className="w-5 h-5 rounded bg-indigo-600 dark:bg-indigo-500 text-white font-extrabold text-[10px] flex items-center justify-center shadow-sm select-none">
@@ -334,6 +348,34 @@ export default function PremiumTopNavigation() {
       {/* RIGHT SECTION: Controls, Notifications, Help, Dark Mode, AI Assistant, Profile */}
       <div className="flex items-center gap-2.5">
         
+        {/* Dynamic tracprogress® Mode Switcher */}
+        <button 
+          onClick={() => setIsTracProgressMode(!isTracProgressMode)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono tracking-wide flex items-center gap-1.5 transition border cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
+            isTracProgressMode 
+              ? "bg-slate-950 border-indigo-500/50 text-indigo-400 hover:bg-slate-900" 
+              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-800/20 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+          }`}
+          title="Toggle UI/UX between tracprogress & tracprogress®"
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline">{isTracProgressMode ? "TRACPROGRESS® PRO LAYOUT" : "TRACPROGRESS® CORE LAYOUT"}</span>
+          <span className="lg:hidden">{isTracProgressMode ? "TRACPROGRESS® PRO" : "TRACPROGRESS®"}</span>
+        </button>
+
+        {/* Return to marketing homepage */}
+        <button 
+          onClick={() => setShowLandingPage(true)}
+          className={`w-8.5 h-8.5 rounded-lg border flex items-center justify-center transition cursor-pointer ${
+            isTracProgressMode
+              ? "bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900"
+              : "text-slate-600 dark:text-slate-350 bg-white border-slate-200 hover:bg-slate-50 dark:bg-slate-800/20 dark:border-slate-800 dark:hover:bg-slate-800"
+          }`}
+          title="Return to tracprogress.com marketing page"
+        >
+          <Home className="w-4 h-4" />
+        </button>
+
         {/* AI Assistant Trigger Button (Glow Accent) */}
         <button 
           onClick={() => setAiAssistantOpen(true)}

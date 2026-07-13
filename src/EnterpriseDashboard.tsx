@@ -810,8 +810,8 @@ export default function EnterpriseDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsLineChart data={healthEvmData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="week" stroke="#94a3b8" fontSize={10} fontClassName="font-mono" />
-                      <YAxis stroke="#94a3b8" fontSize={10} fontClassName="font-mono" />
+                      <XAxis dataKey="week" stroke="#94a3b8" fontSize={10} className="font-mono" />
+                      <YAxis stroke="#94a3b8" fontSize={10} className="font-mono" />
                       <Tooltip />
                       <Legend wrapperStyle={{ fontSize: 10 }} />
                       <Line type="monotone" dataKey="PV" stroke="#6366f1" name="Planned Value (PV)" strokeWidth={2} activeDot={{ r: 6 }} />
@@ -906,8 +906,8 @@ export default function EnterpriseDashboard() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="week" stroke="#94a3b8" fontSize={10} fontClassName="font-mono" />
-                      <YAxis stroke="#94a3b8" fontSize={10} fontClassName="font-mono" />
+                      <XAxis dataKey="week" stroke="#94a3b8" fontSize={10} className="font-mono" />
+                      <YAxis stroke="#94a3b8" fontSize={10} className="font-mono" />
                       <Tooltip />
                       <Legend wrapperStyle={{ fontSize: 10 }} />
                       <Area type="monotone" dataKey="Baseline" stroke="#6366f1" fillOpacity={1} fill="url(#baselineColor)" name="Baseline Curve (Planned)" strokeWidth={2} />
@@ -1024,8 +1024,8 @@ export default function EnterpriseDashboard() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="delayDays" name="Variance Days" stroke="#94a3b8" fontSize={10} fontClassName="font-mono" unit="d" />
-                      <YAxis stroke="#94a3b8" fontSize={10} fontClassName="font-mono" unit="%" />
+                      <XAxis dataKey="delayDays" name="Variance Days" stroke="#94a3b8" fontSize={10} className="font-mono" unit="d" />
+                      <YAxis stroke="#94a3b8" fontSize={10} className="font-mono" unit="%" />
                       <Tooltip />
                       <Area type="monotone" dataKey="probability" stroke="#4f46e5" fillOpacity={1} fill="url(#pdfColor)" name="Probability" strokeWidth={2} />
                     </AreaChart>
@@ -1098,7 +1098,7 @@ export default function EnterpriseDashboard() {
                     <BarChart data={tradePerformers} margin={{ top: 5, right: 20, left: -25, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} />
-                      <YAxis stroke="#94a3b8" fontSize={10} fontClassName="font-mono" />
+                      <YAxis stroke="#94a3b8" fontSize={10} className="font-mono" />
                       <Tooltip />
                       <Legend wrapperStyle={{ fontSize: 10 }} />
                       <Bar dataKey="efficiency" fill="#6366f1" name="Productivity Efficiency (%)" radius={[4, 4, 0, 0]} />

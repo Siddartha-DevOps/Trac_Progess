@@ -1,0 +1,31 @@
+# core fastapi application framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==2.7.4
+pydantic-settings==2.3.3
+
+# deep learning & computer vision
+torch==2.3.1
+torchvision==0.18.1
+ultralytics==8.2.32
+segment-anything-fast==0.1.1
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+scipy==1.13.1
+open3d==0.18.0
+
+# databases, async ORM and client connections
+asyncpg==0.29.0
+SQLAlchemy==2.0.30
+redis==5.0.4
+
+# aws integration & storage stream management
+boto3==1.34.125
+types-boto3-s3==1.34.125
+
+# production logger, tasks, and telemetry
+structlog==24.2.0
+websockets==12.0
+python-multipart==0.0.9
+psutil==5.9.8
+prometheus-client==0.20.0

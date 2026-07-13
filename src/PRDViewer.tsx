@@ -105,7 +105,7 @@ export default function PRDViewer() {
               <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/60 mt-2">
                 <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs mb-1">
                   <Building2 className="w-4 h-4" />
-                  <span>The Buildots Alternative for India</span>
+                  <span>The tracprogress® Platform for India</span>
                 </div>
                 <p className="text-[11px] text-indigo-600 leading-relaxed">
                   Engineered specifically to solve the manual overhead of daily inspections on complex multi-tier projects. Supports deep structural rebar verification and MEP layout alignment checks.

@@ -28,6 +28,7 @@ import QualityManagementView from "./components/QualityManagementView";
 import IntelligenceEngineView from "./components/IntelligenceEngineView";
 import RealityCaptureWorkspace from "./components/RealityCaptureWorkspace";
 import SafetyIntelligenceView from "./components/SafetyIntelligenceView";
+import InteractiveWorkflows from "./components/InteractiveWorkflows";
 import { Camera } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
@@ -218,6 +219,25 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>Operations Workflow</span>
                       <span className="bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-100">NEW</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("live-playbook")}
+                  aria-current={activeTab === "live-playbook" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "live-playbook"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Interactive Scenario Playbook"
+                >
+                  <Sliders className={`w-4 h-4 shrink-0 ${activeTab === "live-playbook" ? "text-indigo-400 animate-pulse" : "text-slate-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Live Playbook</span>
+                      <span className="bg-amber-50 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-100 font-mono">SCENARIOS</span>
                     </div>
                   )}
                 </button>
@@ -625,6 +645,11 @@ export default function App() {
           {/* TAB 1b: Operations Workflow View */}
           {activeTab === "workflow-engine" && (
             <OperationsWorkflow />
+          )}
+
+          {/* TAB 1bb: Live Playbook View */}
+          {activeTab === "live-playbook" && (
+            <InteractiveWorkflows />
           )}
 
           {/* TAB 1c: Commercial Progress Claims View */}

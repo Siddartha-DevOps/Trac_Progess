@@ -5,6 +5,7 @@ import { SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP, getProjectBimElements } from "./da
 export type TabType = 
   | "dashboard"
   | "workflow-engine"
+  | "live-playbook"
   | "projects"
   | "bim-models"
   | "site-progress"

@@ -1,5 +1,5 @@
 {
-  "name": "tracprogres",
+  "name": "TracProgress",
   "description": "An interactive full-stack site progress tracking platform utilizing computer vision, 3D BIM integration with Three.js, and automated AI anomaly detection.",
   "requestFramePermissions": [],
   "majorCapabilities": [

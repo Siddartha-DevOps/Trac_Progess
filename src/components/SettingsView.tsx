@@ -415,7 +415,7 @@ export default function SettingsView() {
         </div>
         <div className="bg-slate-850 border border-slate-700/80 px-3 py-1.5 rounded-lg text-[10px] font-mono text-indigo-300 flex items-center gap-1.5 shrink-0">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Tenant: BuildTrace-KA-992</span>
+          <span>Tenant: TracProgress-KA-992</span>
         </div>
       </div>
 
@@ -1031,7 +1031,7 @@ export default function SettingsView() {
                 <div className="space-y-0.5 text-xs text-indigo-900">
                   <span className="font-extrabold block uppercase tracking-wider text-[10px]">Secure LLM Proxy Active</span>
                   <p className="leading-relaxed text-[11px]">
-                    Your workspace queries are proxied via BuildTrace secure clusters. Model parameters do not feed back into public baseline training repositories.
+                    Your workspace queries are proxied via TracProgress secure clusters. Model parameters do not feed back into public baseline training repositories.
                   </p>
                 </div>
               </div>

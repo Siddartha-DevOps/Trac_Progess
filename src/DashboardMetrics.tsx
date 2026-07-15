@@ -192,7 +192,7 @@ export default function DashboardMetrics({
               <Compass className="w-5 h-5 text-indigo-600 animate-spin-slow" />
             </span>
             <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-wider">
-              BuildTrace Progress Control Room
+              TracProgress Progress Control Room
             </h2>
           </div>
           <p className="text-xs text-slate-400">

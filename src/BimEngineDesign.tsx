@@ -297,7 +297,7 @@ export default function BimEngineDesign() {
               Supported BIM Technologies
             </h3>
             <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-              BuildTrace natively supports open standard Schemas, design authoring file translation, and client-side high-throughput 3D model streaming web view engines.
+              TracProgress natively supports open standard Schemas, design authoring file translation, and client-side high-throughput 3D model streaming web view engines.
             </p>
           </div>
 
@@ -1299,7 +1299,7 @@ export default function BimEngineDesign() {
                   Spatial Delta Cryptographic Merkle Tree Algorithm
                 </h4>
                 <p className="text-slate-400">
-                  Instead of storing duplicate full-payload copies of massive 3D models per version, BuildTrace uses **Merkle-DAG trees**.
+                  Instead of storing duplicate full-payload copies of massive 3D models per version, TracProgress uses **Merkle-DAG trees**.
                 </p>
                 <ol className="flex flex-col gap-2 text-slate-400 pl-4 list-decimal text-[11px]">
                   <li>

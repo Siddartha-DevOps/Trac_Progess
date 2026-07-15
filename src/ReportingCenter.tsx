@@ -331,7 +331,7 @@ export default function ReportingCenter() {
               <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
             </span>
             <h2 className="text-lg font-black uppercase tracking-wider text-slate-100">
-              BuildTrace progress report terminal
+              TracProgress progress report terminal
             </h2>
           </div>
           <p className="text-xs text-slate-400">
@@ -1570,7 +1570,7 @@ export default function ReportingCenter() {
             <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Printer className="w-4 h-4 text-indigo-400" />
-                <span className="font-bold text-xs uppercase tracking-wider">BuildTrace PDF Compiler & Print Preview</span>
+                <span className="font-bold text-xs uppercase tracking-wider">TracProgress PDF Compiler & Print Preview</span>
               </div>
               <button
                 onClick={() => setShowPrintModal(false)}
@@ -1596,7 +1596,7 @@ export default function ReportingCenter() {
                 {/* Print Header */}
                 <div className="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-start">
                   <div>
-                    <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">BuildTrace</h1>
+                    <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">TracProgress</h1>
                     <span className="text-[10px] text-slate-500 font-mono tracking-wider block uppercase font-bold">
                       Bengaluru Whitefield Tech Park Phase 2
                     </span>
@@ -1756,7 +1756,7 @@ export default function ReportingCenter() {
                       <span className="font-bold text-slate-700 font-mono">Registration: COA-A/2026/842</span>
                     </div>
                     <div className="flex flex-col gap-6 text-right items-end">
-                      <span className="text-slate-400 uppercase font-mono tracking-wider">BuildTrace QC Authority</span>
+                      <span className="text-slate-400 uppercase font-mono tracking-wider">TracProgress QC Authority</span>
                       <div className="border-b border-slate-400 w-3/4 h-2" />
                       <span className="font-bold text-slate-700 font-mono">Digital Signature Stamp: [VALIDATED]</span>
                     </div>

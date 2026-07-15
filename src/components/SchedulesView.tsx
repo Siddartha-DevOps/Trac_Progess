@@ -143,9 +143,22 @@ const CONSTRUCTION_PHASES: TimelinePhase[] = [
   }
 ];
 
+import { useAppStore } from "../store";
+import { getProjectPhases } from "../data";
+
 export default function SchedulesView() {
-  const [selectedPhase, setSelectedPhase] = useState<TimelinePhase>(CONSTRUCTION_PHASES[2]); // Default to the delayed column phase
+  const { activeProject } = useAppStore();
+  const CONSTRUCTION_PHASES = getProjectPhases(activeProject.id);
+
+  const [selectedPhase, setSelectedPhase] = useState<TimelinePhase>(
+    CONSTRUCTION_PHASES.find(p => p.status === "delayed") || CONSTRUCTION_PHASES[0]
+  );
   const [showOnlyCriticalPath, setShowOnlyCriticalPath] = useState(false);
+
+  // Sync selected phase on project switch
+  React.useEffect(() => {
+    setSelectedPhase(CONSTRUCTION_PHASES.find(p => p.status === "delayed") || CONSTRUCTION_PHASES[0]);
+  }, [activeProject.id]);
 
   const filteredPhases = showOnlyCriticalPath 
     ? CONSTRUCTION_PHASES.filter(p => p.isCriticalPath)
@@ -448,7 +461,7 @@ export default function SchedulesView() {
             <div className="flex flex-col gap-1.5">
               <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block font-mono flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-indigo-300" />
-                BuildTrace AI Schedule Advisor
+                TracProgress AI Schedule Advisor
               </span>
               <p className="text-[10px] text-slate-300 leading-relaxed font-sans">
                 <strong>Deviation Impact:</strong> {selectedPhase.impactNotes}

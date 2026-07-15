@@ -60,6 +60,10 @@ export default function TracProgressDashboardView() {
   const [selectedBimItem, setSelectedBimItem] = useState(BIM_ELEMENTS_360[0]);
   const [hoveredBimId, setHoveredBimId] = useState<string | null>(null);
 
+  // Synchronized camera & locations states (Buildots Parity upgrades)
+  const [rotationYaw, setRotationYaw] = useState<number>(142);
+  const [selectedZone, setSelectedZone] = useState<string>("Zone A Corridor");
+
   // Trigger helmet walkthrough video processing simulation
   const startWalkwayProcessing = () => {
     if (processingWalk) return;
@@ -235,114 +239,207 @@ export default function TracProgressDashboardView() {
         </div>
       </div>
 
-      {/* 3. INTERACTIVE 360° SITE-TO-BIM VIEWPORT SIMULATOR */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* 3. DUAL-PANE SYNCHRONIZED 360° SITE-TO-BIM VIEWPORT SIMULATOR */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
         
-        {/* Left Side: BIM Design Layout Coordinates (6 Cols) */}
-        <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col">
-          <div className="border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
-            <div>
-              <h3 className="text-xs font-extrabold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-indigo-400" />
-                IFC BIM coordinate blockout
-              </h3>
-              <p className="text-[10.5px] text-slate-400">Select any component coordinate to view actual walkthrough photograph proof.</p>
-            </div>
-            <span className="text-[9px] bg-indigo-950 text-indigo-400 font-mono border border-indigo-900 px-1.5 py-0.5 rounded uppercase font-bold">Plan Model sync</span>
+        {/* Module Header with Live Sync Status */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4 mb-4">
+          <div>
+            <h3 className="text-sm font-extrabold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              Buildots-Style Dual-Pane Synced 360° Walkthrough
+            </h3>
+            <p className="text-xs text-slate-400">
+              Dragging the panoramic orientation slider rotates both the <strong>IFC BIM digital twin</strong> and the <strong>360° Site Reality frame</strong> in lockstep.
+            </p>
           </div>
-
-          <div className="flex-1 flex flex-col gap-2.5">
-            {BIM_ELEMENTS_360.map((elem) => {
-              const isSelected = selectedBimItem.id === elem.id;
-              return (
-                <button
-                  key={elem.id}
-                  onClick={() => setSelectedBimItem(elem)}
-                  onMouseEnter={() => setHoveredBimId(elem.id)}
-                  onMouseLeave={() => setHoveredBimId(null)}
-                  className={`w-full text-left p-3.5 rounded-lg border transition-all flex flex-col gap-1.5 ${
-                    isSelected 
-                      ? "bg-indigo-950/40 border-indigo-500/50 shadow-md" 
-                      : "bg-slate-950 border-slate-800/80 hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-200">{elem.name}</span>
-                    <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase border ${
-                      elem.status === "installed" 
-                        ? "bg-emerald-950 text-emerald-400 border-emerald-900/60" 
-                        : (elem.status === "omitted" ? "bg-red-950 text-red-400 border-red-900/60" : "bg-amber-950 text-amber-400 border-amber-900/60")
-                    }`}>
-                      {elem.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                    <span>Trade: {elem.trade}</span>
-                    <span>Coordinates: {elem.coords}</span>
-                  </div>
-                </button>
-              );
-            })}
+          
+          <div className="flex flex-wrap gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            {["Zone A Corridor", "Electrical Closet", "L1-C4 Column Column"].map((zone) => (
+              <button
+                key={zone}
+                onClick={() => {
+                  setSelectedZone(zone);
+                  if (zone === "Zone A Corridor") setSelectedBimItem(BIM_ELEMENTS_360[0]);
+                  else if (zone === "Electrical Closet") setSelectedBimItem(BIM_ELEMENTS_360[1]);
+                  else setSelectedBimItem(BIM_ELEMENTS_360[3]);
+                }}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-md font-mono uppercase transition ${
+                  selectedZone === zone 
+                    ? "bg-indigo-600 text-white" 
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {zone}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Right Side: Processed 360° Walkthrough Actual photo viewport (6 Cols) */}
-        <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between min-h-[380px]">
-          <div className="border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
-            <div>
-              <h3 className="text-xs font-extrabold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
-                <Video className="w-4 h-4 text-indigo-400" />
-                Processed 360° actual camera sphere
-              </h3>
-              <p className="text-[10.5px] text-slate-400">Synced to camera walk position inside Whitefield-B corridor.</p>
+        {/* The Dual Viewport Arena */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-4">
+          
+          {/* Left Viewport: Synced 3D BIM Model */}
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 relative flex flex-col justify-between overflow-hidden min-h-[300px]">
+            {/* Visual background coordinate grids */}
+            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_14px]" />
+            
+            {/* Dynamic rotation background simulation element */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center opacity-30 transition-transform duration-100 ease-out"
+              style={{ transform: `rotate(${rotationYaw}deg)` }}
+            >
+              <div className="w-64 h-64 border-4 border-dashed border-indigo-500 rounded-full flex items-center justify-center">
+                <div className="w-40 h-40 border border-indigo-400 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-1 bg-indigo-500 rounded" />
+                </div>
+              </div>
             </div>
-            <span className="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-900 px-1.5 py-0.5 rounded font-bold font-mono animate-pulse">Walk proof active</span>
+
+            {/* Viewport Header */}
+            <div className="relative z-10 flex justify-between items-center bg-slate-900/80 px-2 py-1.5 rounded border border-slate-800 backdrop-blur-sm">
+              <span className="text-[10px] text-indigo-400 font-bold font-mono uppercase tracking-wider">
+                VIEWPORT A: Revit 3D BIM Twin
+              </span>
+              <span className="text-[9px] bg-indigo-950/80 text-indigo-300 font-mono border border-indigo-900 px-1.5 py-0.5 rounded uppercase">
+                Active Coordinate: {selectedBimItem.coords}
+              </span>
+            </div>
+
+            {/* BIM Element Overlay Spot */}
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-16 h-16 rounded-xl bg-slate-900 border border-indigo-500/40 flex items-center justify-center text-indigo-400 mb-3 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+                <Layers className="w-7 h-7" />
+              </div>
+              <h4 className="text-sm font-extrabold text-white uppercase font-mono mb-1">{selectedBimItem.name}</h4>
+              <p className="text-[11px] text-slate-400 max-w-xs font-mono leading-relaxed">
+                Design Spec: Wireframe grid model alignment detected at coordinate <span className="text-white font-bold">{selectedBimItem.coords}</span>.
+              </p>
+
+              {/* Status HUD indicator */}
+              <div className="mt-4 flex gap-4 text-[10px] font-mono text-slate-500">
+                <div>YAW: <strong className="text-slate-300">{rotationYaw}°</strong></div>
+                <div>DEPTH: <strong className="text-slate-300">4.2m</strong></div>
+                <div>COMPLIANCE: <strong className="text-emerald-400">Class 1</strong></div>
+              </div>
+            </div>
+
+            {/* Footer indicators */}
+            <div className="relative z-10 text-[9.5px] font-mono text-slate-500 bg-slate-900/60 p-2 rounded border border-slate-800 flex justify-between items-center">
+              <span>FOV: 90° Orthographic</span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                IFC4 Schema Connected
+              </span>
+            </div>
           </div>
 
-          {/* Spherical Mock Visualizer stage */}
-          <div className="flex-1 bg-slate-950 rounded-lg border border-slate-800 relative overflow-hidden flex items-center justify-center p-6 h-[220px]">
+          {/* Right Viewport: Synced Site Walk 360 Reality Photo */}
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 relative flex flex-col justify-between overflow-hidden min-h-[300px]">
+            {/* Reality walk background panorama representing processed site walk */}
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
             
-            {/* Abstract Background panorama representing processed site walk */}
-            <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 h-2/3 border border-dashed border-indigo-900/30 rounded-full" />
-            
-            {/* Conditional visuals based on active item */}
-            <div className="relative z-10 flex flex-col items-center text-center max-w-[340px] gap-2 animate-fade-in">
-              <div className="w-12 h-12 rounded-full bg-slate-900 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-2">
-                <Camera className="w-6 h-6 text-indigo-400" />
+            {/* Dynamic rotation camera perspective representation */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center opacity-40 transition-transform duration-100 ease-out"
+              style={{ transform: `rotate(${-rotationYaw}deg) scale(1.1)` }}
+            >
+              <div className="w-72 h-48 border border-dashed border-indigo-400/40 rounded flex items-center justify-center">
+                <div className="text-slate-700 text-[10px] font-mono uppercase font-bold">Panoramic Horizon Walk Grid</div>
               </div>
+            </div>
 
-              <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-indigo-400">
-                Camera coordinate focus: {selectedBimItem.coords}
+            {/* Viewport Header */}
+            <div className="relative z-10 flex justify-between items-center bg-slate-900/80 px-2 py-1.5 rounded border border-slate-800 backdrop-blur-sm">
+              <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">
+                VIEWPORT B: Processed 360° Photo Proof
               </span>
+              <span className="text-[9px] bg-emerald-950/80 text-emerald-300 font-mono border border-emerald-900 px-1.5 py-0.5 rounded uppercase">
+                Fidelity Conf: 99.4% Verified
+              </span>
+            </div>
 
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider leading-none">
-                {selectedBimItem.name} photo record
-              </h4>
-
-              {/* Photo-to-model deviation state card */}
-              <div className={`mt-2 p-3 rounded-lg border text-[11px] leading-relaxed ${
+            {/* Photo Reality Frame Overlay */}
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-900 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                <Camera className="w-7 h-7" />
+              </div>
+              <h4 className="text-sm font-extrabold text-white uppercase font-mono mb-1">Actual Photo Record</h4>
+              
+              {/* Contextual description box based on state */}
+              <div className={`mt-2 p-3 rounded-lg border text-[11px] leading-relaxed max-w-xs ${
                 selectedBimItem.status === "installed" 
                   ? "bg-emerald-950/40 border-emerald-900 text-emerald-300" 
                   : (selectedBimItem.status === "omitted" ? "bg-red-950/40 border-red-900 text-red-300" : "bg-amber-950/40 border-amber-900 text-amber-300")
               }`}>
                 <span className="font-bold uppercase text-[9px] block mb-1 font-mono">
-                  {selectedBimItem.status === "installed" ? "✓ Alignment Approved" : "✗ Deviation Logged"}
+                  {selectedBimItem.status === "installed" ? "✓ Reality Verified" : "✗ Deviation Detected"}
                 </span>
                 {selectedBimItem.desc}
               </div>
             </div>
 
-            {/* Quick action button to simulate standard manual override */}
-            <div className="absolute bottom-3 right-3 text-[9px] font-mono text-slate-500 bg-slate-900 border border-slate-800 px-2 py-1 rounded">
-              FOV angle: 120° H, 90° V
+            {/* Footer indicators */}
+            <div className="relative z-10 text-[9.5px] font-mono text-slate-500 bg-slate-900/60 p-2 rounded border border-slate-800 flex justify-between items-center">
+              <span>FOCAL YAW: {rotationYaw}°</span>
+              <span className="flex items-center gap-1 font-bold text-slate-300">
+                <Video className="w-3.5 h-3.5 text-indigo-400" />
+                GoPro Max Frame Walk_04_L1
+              </span>
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-slate-950/40 border border-slate-800 rounded-lg text-[10.5px] leading-normal text-slate-400 flex items-center gap-2">
-            <Info className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span>This split-screen layout mirrors tracprogress®' core patent feature, connecting raw field pixels back to direct 3D coordinate geometries.</span>
+        </div>
+
+        {/* Dynamic Rotation Slide Controller */}
+        <div className="bg-slate-950 border border-slate-800/80 p-4 rounded-lg flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="p-1.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-900">
+              <RefreshCw className="w-4 h-4 animate-spin-slow" />
+            </span>
+            <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">
+              360° Panoramic Compass Yaw:
+            </span>
           </div>
+          
+          <input 
+            type="range" 
+            min="0" 
+            max="360" 
+            value={rotationYaw} 
+            onChange={(e) => setRotationYaw(parseInt(e.target.value))}
+            className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+          />
+
+          <div className="font-mono text-xs text-slate-300 bg-slate-900 border border-slate-800 px-3 py-1 rounded shrink-0">
+            {rotationYaw}° Degrees
+          </div>
+        </div>
+
+        {/* Coordinates Map Selection Panel */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+          {BIM_ELEMENTS_360.map((elem) => {
+            const isSelected = selectedBimItem.id === elem.id;
+            return (
+              <button
+                key={elem.id}
+                onClick={() => setSelectedBimItem(elem)}
+                className={`text-left p-3 rounded-lg border transition-all flex flex-col gap-1 font-mono ${
+                  isSelected 
+                    ? "bg-indigo-950/40 border-indigo-500 shadow-md" 
+                    : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-slate-200">{elem.name}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    elem.status === "installed" ? "bg-emerald-500" : (elem.status === "omitted" ? "bg-red-500" : "bg-amber-500")
+                  }`} />
+                </div>
+                <span className="text-[9px] text-slate-500">Coord: {elem.coords}</span>
+              </button>
+            );
+          })}
         </div>
 
       </div>
@@ -411,6 +508,88 @@ export default function TracProgressDashboardView() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* 5. DENSE WEEKLY QUANTITY OUTPUTS & PPC LEDGER (Buildots Signature Feature) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div className="border-b border-slate-800 pb-3.5 mb-4 flex justify-between items-center">
+          <div>
+            <h3 className="text-xs font-extrabold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <Table className="w-4 h-4 text-indigo-400" />
+              Granular Weekly Production Velocity & PPC Ledger
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Buildots Parity: Tracks individual physical unit quantities installed against planned targets to calculate <strong>Percent Plan Complete (PPC)</strong>.
+            </p>
+          </div>
+          <span className="text-[10px] text-indigo-400 font-mono font-bold bg-indigo-950 px-2 py-0.5 rounded border border-indigo-900">
+            PPC Standard: 87.5%
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Electrical Outlet Plates</span>
+            <div className="my-2">
+              <span className="text-2xl font-black text-white font-mono">142 / 160</span>
+              <span className="text-[10px] text-red-400 font-mono ml-2 font-bold">-11.2% rate</span>
+            </div>
+            <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden mb-2">
+              <div className="bg-red-500 h-full" style={{ width: "88.7%" }} />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>PPC Score: <strong className="text-red-400">88%</strong></span>
+              <span>Velocity: <strong>-18 units/wk</strong></span>
+            </div>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Drywall Panels (Sheets)</span>
+            <div className="my-2">
+              <span className="text-2xl font-black text-white font-mono">310 / 300</span>
+              <span className="text-[10px] text-emerald-400 font-mono ml-2 font-bold">+3.3% rate</span>
+            </div>
+            <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden mb-2">
+              <div className="bg-emerald-500 h-full" style={{ width: "100%" }} />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>PPC Score: <strong className="text-emerald-400">100%</strong></span>
+              <span>Velocity: <strong>+10 sheets/wk</strong></span>
+            </div>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">HVAC Rigid Ducting</span>
+            <div className="my-2">
+              <span className="text-2xl font-black text-white font-mono">80m / 80m</span>
+              <span className="text-[10px] text-slate-400 font-mono ml-2 font-bold">100% target</span>
+            </div>
+            <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden mb-2">
+              <div className="bg-indigo-500 h-full" style={{ width: "100%" }} />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>PPC Score: <strong className="text-indigo-400 font-bold">100%</strong></span>
+              <span>Velocity: <strong>On Track</strong></span>
+            </div>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Plumbing Copper Pipe main</span>
+            <div className="my-2">
+              <span className="text-2xl font-black text-white font-mono">210m / 250m</span>
+              <span className="text-[10px] text-red-400 font-mono ml-2 font-bold">-16% rate</span>
+            </div>
+            <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden mb-2">
+              <div className="bg-amber-500 h-full" style={{ width: "84%" }} />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>PPC Score: <strong className="text-amber-400">84%</strong></span>
+              <span>Velocity: <strong>-40 meters/wk</strong></span>
+            </div>
+          </div>
+
         </div>
       </div>
 

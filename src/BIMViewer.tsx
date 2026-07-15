@@ -8,6 +8,8 @@ import {
 import { BIMElement, Anomaly } from "./types";
 import { IBIMViewerEngine, BIMElementMetadata } from "./lib/bim/BIMViewerAbstraction";
 import { IFCJsViewerEngine } from "./lib/bim/IFCJsViewerEngine";
+import { useAppStore } from "./store";
+import { BIM_ELEMENTS_LOOKUP } from "./data";
 
 interface BIMViewerProps {
   onSelectElement: (element: BIMElement | null) => void;
@@ -17,6 +19,7 @@ interface BIMViewerProps {
 }
 
 export default function BIMViewer({ onSelectElement, selectedElement, anomalies, currentWeek }: BIMViewerProps) {
+  const { activeProject } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerWrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<IBIMViewerEngine | null>(null);
@@ -87,7 +90,7 @@ export default function BIMViewer({ onSelectElement, selectedElement, anomalies,
             size: found.size,
             material: (found.properties["Material"] || found.properties["Material Grade"] || "Gypsum/Concrete Spec") as string,
             installationDate: found.floor === "Ground Floor" ? "Week 1" : (found.floor === "First Floor" ? "Week 3" : "Week 5"),
-            anomalyId: found.id === "col_c4" ? "anom_rebar_density" : (found.id === "mep_duct_branch" ? "anom_duct_clash" : undefined)
+            anomalyId: BIM_ELEMENTS_LOOKUP.find(lookup => lookup.id === found.id)?.anomalyId
           };
           onSelectElement(mapped);
         }
@@ -121,7 +124,7 @@ export default function BIMViewer({ onSelectElement, selectedElement, anomalies,
       engine.destroy();
       engineRef.current = null;
     };
-  }, []);
+  }, [activeProject.id]);
 
   // Sync selected element changes from parent component (e.g., from Anomaly Center selection)
   useEffect(() => {

@@ -22,10 +22,16 @@ import SettingsView from "./components/SettingsView";
 import PremiumTopNavigation from "./components/PremiumTopNavigation";
 import DesignSystemView from "./components/DesignSystemView";
 import TracProgressLandingView from "./components/TracProgressLandingView";
+import OperationsWorkflow from "./components/OperationsWorkflow";
+import CommercialBillingView from "./components/CommercialBillingView";
+import QualityManagementView from "./components/QualityManagementView";
+import IntelligenceEngineView from "./components/IntelligenceEngineView";
+import RealityCaptureWorkspace from "./components/RealityCaptureWorkspace";
+import { Camera } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
-import { SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP } from "./data";
+import { SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP, getProjectBimElements } from "./data";
 import { 
   Building2, 
   MapPin, 
@@ -56,7 +62,9 @@ import {
   Users,
   Settings,
   Calendar,
-  Hammer
+  Hammer,
+  Cpu,
+  ClipboardCheck
 } from "lucide-react";
 
 export default function App() {
@@ -83,6 +91,18 @@ export default function App() {
   } = useAppStore();
 
   const [rightPanelTab, setRightPanelTab] = useState<"analytics" | "inspector">("analytics");
+
+  const mappedBimElements: BIMElement[] = getProjectBimElements(activeProject.id).map(found => ({
+    id: found.id,
+    name: found.name,
+    category: found.category,
+    type: found.type as any,
+    progress: found.status === "completed" ? 100 : (found.status === "in_progress" ? 60 : (found.status === "delayed" ? 30 : 0)),
+    status: found.status === "completed" ? "completed" : (found.status === "delayed" ? "delayed" : (found.status === "in_progress" ? "in_progress" : "not_started")),
+    position: found.position,
+    size: found.size,
+    anomalyId: BIM_ELEMENTS_LOOKUP.find(l => l.id === found.id)?.anomalyId
+  }));
 
   // Handle synchronized selection from the 3D BIM Viewer
   const handleSelectElement = (element: BIMElement | null) => {
@@ -182,6 +202,44 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab("workflow-engine")}
+                  aria-current={activeTab === "workflow-engine" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "workflow-engine"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Construction Operations Workflow Engine"
+                >
+                  <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "workflow-engine" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Operations Workflow</span>
+                      <span className="bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-100">NEW</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("commercial-billing")}
+                  aria-current={activeTab === "commercial-billing" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "commercial-billing"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Commercial claims & Progress Valuation"
+                >
+                  <FileSpreadsheet className={`w-4 h-4 shrink-0 ${activeTab === "commercial-billing" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Commercial Claims</span>
+                      <span className="bg-emerald-50 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-100">BOQ</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
                   onClick={() => setActiveTab("projects")}
                   aria-current={activeTab === "projects" ? "page" : undefined}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
@@ -220,6 +278,25 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab("reality-capture")}
+                  aria-current={activeTab === "reality-capture" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "reality-capture"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Reality Capture Intelligence Platform"
+                >
+                  <Camera className={`w-4 h-4 shrink-0 ${activeTab === "reality-capture" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Reality Capture</span>
+                      <span className="bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-100 uppercase font-mono">ACTIVE</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
                   onClick={() => setActiveTab("site-progress")}
                   aria-current={activeTab === "site-progress" ? "page" : undefined}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
@@ -233,7 +310,7 @@ export default function App() {
                   {isSidebarExpanded && <span>Site Progress</span>}
                 </button>
 
-                <button
+                 <button
                   onClick={() => setActiveTab("ai-analysis")}
                   aria-current={activeTab === "ai-analysis" ? "page" : undefined}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
@@ -248,6 +325,44 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>AI Analysis</span>
                       <span className="bg-red-50 text-red-600 text-[8px] font-bold px-1 py-0.5 rounded border border-red-100">AI</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("intelligence-engine")}
+                  aria-current={activeTab === "intelligence-engine" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "intelligence-engine"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Enterprise Construction Intelligence Engine"
+                >
+                  <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "intelligence-engine" ? "text-white" : "text-indigo-500 animate-pulse"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Intelligence Brain</span>
+                      <span className="bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-100 uppercase font-mono">Engine</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("quality-management")}
+                  aria-current={activeTab === "quality-management" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "quality-management"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Quality Management System (QMS)"
+                >
+                  <ClipboardCheck className={`w-4 h-4 shrink-0 ${activeTab === "quality-management" ? "text-white" : "text-slate-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Quality (QMS)</span>
+                      <span className="bg-emerald-50 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-100 font-mono">ISO</span>
                     </div>
                   )}
                 </button>
@@ -486,6 +601,26 @@ export default function App() {
             <DashboardView />
           )}
 
+          {/* TAB 1b: Operations Workflow View */}
+          {activeTab === "workflow-engine" && (
+            <OperationsWorkflow />
+          )}
+
+          {/* TAB 1c: Commercial Progress Claims View */}
+          {activeTab === "commercial-billing" && (
+            <CommercialBillingView />
+          )}
+
+          {/* TAB 1d: Quality Management System View */}
+          {activeTab === "quality-management" && (
+            <QualityManagementView />
+          )}
+
+          {/* TAB 1e: Enterprise Construction Intelligence View */}
+          {activeTab === "intelligence-engine" && (
+            <IntelligenceEngineView />
+          )}
+
           {/* TAB 2: Projects Portfolio View */}
           {activeTab === "projects" && (
             <ProjectsView />
@@ -672,11 +807,16 @@ export default function App() {
                 stats={activeProject} 
                 currentWeek={currentWeek} 
                 setCurrentWeek={setCurrentWeek} 
-                elements={BIM_ELEMENTS_LOOKUP}
+                elements={mappedBimElements}
                 anomalies={SITE_ANOMALIES}
               />
 
             </div>
+          )}
+
+          {/* TAB 3b: Reality Capture Workspace */}
+          {activeTab === "reality-capture" && (
+            <RealityCaptureWorkspace />
           )}
 
           {/* TAB 4: Site Progress Details View */}
@@ -686,7 +826,7 @@ export default function App() {
                 stats={activeProject} 
                 currentWeek={currentWeek} 
                 setCurrentWeek={setCurrentWeek} 
-                elements={BIM_ELEMENTS_LOOKUP}
+                elements={mappedBimElements}
                 anomalies={SITE_ANOMALIES}
               />
             </div>

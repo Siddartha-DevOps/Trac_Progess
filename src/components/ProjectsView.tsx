@@ -87,7 +87,7 @@ const INDIAN_PROJECTS: ProjectItem[] = [
 ];
 
 export default function ProjectsView() {
-  const { activeProject } = useAppStore();
+  const { activeProject, setActiveProject, setActiveTab } = useAppStore();
   const [filter, setFilter] = useState<"all" | "active" | "delayed" | "completed">("all");
   const [search, setSearch] = useState("");
 
@@ -252,8 +252,17 @@ export default function ProjectsView() {
                 ) : (
                   <button 
                     onClick={() => {
-                      // We can let the user click to load project details (or show simulated action)
-                      alert(`Loading workspace parameters for: ${proj.name}`);
+                      setActiveProject({
+                        id: proj.id,
+                        name: proj.name,
+                        location: proj.location,
+                        totalCost: proj.cost,
+                        reraId: proj.reraId,
+                        constructionArea: proj.area,
+                        targetDate: proj.targetDate,
+                        overallProgress: proj.progress
+                      });
+                      setActiveTab("dashboard");
                     }}
                     className="text-xs font-bold text-indigo-600 hover:text-indigo-850 flex items-center gap-0.5"
                   >

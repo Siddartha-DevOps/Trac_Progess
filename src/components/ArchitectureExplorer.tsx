@@ -113,7 +113,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNavigation } from "@/components/layout/TopNavigation";
 
 export const metadata = {
-  title: "BuildTrace India | Enterprise BIM Monitor",
+  title: "TracProgress | Enterprise BIM Monitor",
   description: "AI-driven physical site verification and progress prediction",
 };
 
@@ -508,14 +508,14 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]`
       {
         name: ".env.example",
         type: "file",
-        content: `APP_NAME="BuildTrace CV Inference Platform"
+        content: `APP_NAME="TracProgress CV Inference Platform"
 APP_ENV="production"
 DEBUG=false
-DATABASE_URL="postgresql+asyncpg://buildtrace_admin:secure_db_password_98231@localhost:5432/buildtrace_cv_prod"
+DATABASE_URL="postgresql+asyncpg://tracprogress_admin:secure_db_password_98231@localhost:5432/tracprogress_cv_prod"
 REDIS_URL="redis://localhost:6379/0"
 AWS_REGION="ap-south-1"
-S3_BUCKET_RAW_VIDEOS="buildtrace-mumbai-raw-walkthroughs"
-S3_BUCKET_EXTRACTED_FRAMES="buildtrace-mumbai-processed-frames"
+S3_BUCKET_RAW_VIDEOS="tracprogress-mumbai-raw-walkthroughs"
+S3_BUCKET_EXTRACTED_FRAMES="tracprogress-mumbai-processed-frames"
 YOLO_WEIGHTS_PATH="/app/weights/yolov11x-seg.pt"
 SAM_WEIGHTS_PATH="/app/weights/sam2_hiera_large.pt"
 LOG_LEVEL="INFO"
@@ -543,7 +543,7 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    logger.info("Initializing BuildTrace Computer Vision platform", env=settings.APP_ENV)
+    logger.info("Initializing TracProgress Computer Vision platform", env=settings.APP_ENV)
     from app.infrastructure.ml.yolo_segmenter import MultiModelInferenceEngine
     ml_engine = MultiModelInferenceEngine()
     ml_engine.load_model()
@@ -574,7 +574,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     # 1. Core Application Configuration
-    APP_NAME: str = "BuildTrace CV Inference Platform"
+    APP_NAME: str = "TracProgress CV Inference Platform"
     APP_ENV: AppEnvironment = AppEnvironment.PRODUCTION
     DEBUG: bool = False
     API_V1_STR: str = "/api/v1"

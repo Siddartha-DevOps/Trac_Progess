@@ -1,5 +1,5 @@
 # Software Requirements Specification (SRS)
-## Project Name: BuildTrace India
+## Project Name: TracProgress
 **Version:** 1.0.0  
 **Date:** July 2026  
 
@@ -7,10 +7,10 @@
 
 ## 1. Introduction
 ### 1.1 Purpose
-This Software Requirements Specification (SRS) document details the functional, non-functional, interface, and system requirements for **BuildTrace India**—the AI-driven real-time construction site progress tracking and verification system. This document serves as the absolute blueprint for engineering, testing, and deployment.
+This Software Requirements Specification (SRS) document details the functional, non-functional, interface, and system requirements for **TracProgress**—the AI-driven real-time construction site progress tracking and verification system. This document serves as the absolute blueprint for engineering, testing, and deployment.
 
 ### 1.2 Scope
-BuildTrace India is an enterprise-grade full-stack application that:
+TracProgress is an enterprise-grade full-stack application that:
 * Ingests high-resolution drone orthomosaics, 360-degree helmet walkthrough video streams, and 3D Industry Foundation Classes (IFC) BIM coordinate files.
 * Automatically registers visual coordinates over virtual BIM space to detect, isolate, and log architectural, structural, and MEP trade status.
 * Leverages YOLO-based computer vision on server-side nodes for rebar stirrup verification and MEP collision detection.
@@ -29,7 +29,7 @@ BuildTrace India is an enterprise-grade full-stack application that:
 
 ## 2. Overall Description
 ### 2.1 Product Perspective
-BuildTrace India functions as an autonomous inspection suite. It consists of:
+TracProgress functions as an autonomous inspection suite. It consists of:
 1. **Interactive Client Application (React/TS/Tailwind):** Provides 3D IFC model canvas, spatial coordinate translation/rotation sandbox, interactive analytics tracking, and progress charts.
 2. **Robust Backend API Services (NestJS/TypeScript):** Handles multitenant security, IFC parsing pipelines, video ingestion endpoints, and proxy communication with AI model microservices.
 3. **AI Core Neural Services (Python/FastAPI/PyTorch):** Handles deep learning YOLOv8 detection workloads, video frame extraction, and coordinate transformation alignment matrices.

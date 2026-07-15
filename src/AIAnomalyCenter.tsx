@@ -58,11 +58,11 @@ export default function AIAnomalyCenter({
         setAiReport(data.report);
         setModelUsed(data.modelUsed || "gemini-3.5-flash");
       } else {
-        setAiReport("⚠️ Error: Unable to extract inspection advice from BuildTrace AI.");
+        setAiReport("⚠️ Error: Unable to extract inspection advice from TracProgress AI.");
       }
     } catch (err: any) {
       console.error(err);
-      setAiReport("⚠️ API Error: Failed to connect to the BuildTrace secure AI pipeline.");
+      setAiReport("⚠️ API Error: Failed to connect to the TracProgress secure AI pipeline.");
     } finally {
       setLoading(false);
     }
@@ -253,7 +253,7 @@ export default function AIAnomalyCenter({
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <h4 className="font-semibold text-slate-800 text-sm mb-1">
-                    Query BuildTrace AI Auditor
+                    Query TracProgress AI Auditor
                   </h4>
                   <p className="text-xs text-slate-500 text-center max-w-sm mb-4">
                     Send a custom question or select one of the core construction site inspection templates below to generate a Gemini analysis:
@@ -281,7 +281,7 @@ export default function AIAnomalyCenter({
                     Analyzing site photogrammetry parameters...
                   </div>
                   <p className="text-[10px] text-slate-400 text-center mt-1 max-w-xs">
-                    BuildTrace is aligning the IFC model vertices with drone surface grids. Formulating Gemini inspection report...
+                    TracProgress is aligning the IFC model vertices with drone surface grids. Formulating Gemini inspection report...
                   </p>
                 </div>
               )}

@@ -46,33 +46,7 @@ import {
 import { useAppStore } from "../store";
 import AIInsightsComponent from "./AIInsightsComponent";
 import TracProgressDashboardView from "./TracProgressDashboardView";
-
-// Chart Data 1: Planned vs Actual Progress Trend
-const PROGRESS_TREND_DATA = [
-  { name: "Week 1", planned: 65, actual: 63, budget: 15, laborIndex: 92 },
-  { name: "Week 2", planned: 70, actual: 67, budget: 35, laborIndex: 94 },
-  { name: "Week 3", planned: 75, actual: 72.4, budget: 52, laborIndex: 94.2 },
-  { name: "Week 4", planned: 82, actual: null, budget: null, laborIndex: null },
-  { name: "Week 5", planned: 88, actual: null, budget: null, laborIndex: null },
-];
-
-// Chart Data 2: Budget vs Committed Expenses per Major Trade (₹ in Lakhs)
-const BUDGET_TRADE_DATA = [
-  { name: "Foundations", budget: 350, actual: 342, status: "Under Budget" },
-  { name: "Structure", budget: 680, actual: 710, status: "Over Budget" },
-  { name: "MEP / HVAC", budget: 420, actual: 412, status: "Under Budget" },
-  { name: "Drywalls & Fin", budget: 280, actual: 120, status: "Under Budget" },
-  { name: "Plumbing", budget: 120, actual: 110, status: "Under Budget" },
-];
-
-// Chart Data 3: Discrepancy Matrix by Trade (Outstanding vs Resolved)
-const DISCREPANCY_DATA = [
-  { name: "Slabs", resolved: 14, outstanding: 2 },
-  { name: "Columns", resolved: 28, outstanding: 4 },
-  { name: "Plumbing", resolved: 8, outstanding: 5 },
-  { name: "HVAC Ducts", resolved: 12, outstanding: 3 },
-  { name: "Electrical", resolved: 22, outstanding: 1 },
-];
+import { getProjectWorkspace } from "../data";
 
 export default function DashboardView() {
   const { activeProject, setActiveTab, currentWeek, isTracProgressMode } = useAppStore();
@@ -81,6 +55,11 @@ export default function DashboardView() {
     return <TracProgressDashboardView />;
   }
 
+  const workspace = getProjectWorkspace(activeProject.id);
+  const PROGRESS_TREND_DATA = workspace.progressTrendData;
+  const BUDGET_TRADE_DATA = workspace.budgetTradeData;
+  const DISCREPANCY_DATA = workspace.discrepancyData;
+
   const [filterTrade, setFilterTrade] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   
@@ -88,20 +67,16 @@ export default function DashboardView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [recentUploads, setRecentUploads] = useState([
-    { id: "up-101", name: "Drone_Scan_BlockB_L1Slab.las", type: "laser", size: "1.4 GB", date: "Today, 10:14 AM", uploader: "AI Autopilot V4", status: "Processed" },
-    { id: "up-102", name: "IFC_Design_Revision_v3.ifc", type: "cad", size: "48.2 MB", date: "Yesterday", uploader: "Venkatesh Rao (BIM Lead)", status: "Processed" },
-    { id: "up-103", name: "ZoneB_Thermal_Curing_Scan.mp4", type: "video", size: "215 MB", date: "2 days ago", uploader: "Autobot East Ground Station", status: "Processed" },
-    { id: "up-104", name: "RERA_Stage_2_Structural_Report.pdf", type: "report", size: "12.4 MB", date: "4 days ago", uploader: "Rajesh Kumar (QC Engineer)", status: "Archived" }
-  ]);
+  const [recentUploads, setRecentUploads] = useState(workspace.recentUploads);
 
   // Interactive local issue list state to allow users to "resolve" directly on the dashboard
-  const [dashboardIssues, setDashboardIssues] = useState([
-    { id: "iss-101", title: "Column C4 Concrete Cover Variance", category: "Structure", priority: "Critical", status: "Open", assignedTo: "Rajesh Kumar", date: "July 08" },
-    { id: "iss-102", title: "Slab S2 Deflection Out of Tolerance", category: "Structure", priority: "Critical", status: "Open", assignedTo: "Amit Sharma", date: "July 09" },
-    { id: "iss-103", title: "Piping Conflict with HVAC Duct Level 1", category: "MEP", priority: "Medium", status: "Open", assignedTo: "Venkatesh Rao", date: "July 10" },
-    { id: "iss-104", title: "Corridor Fire-Damper Sleeve Missing", category: "MEP", priority: "High", status: "Open", assignedTo: "Venkatesh Rao", date: "July 11" }
-  ]);
+  const [dashboardIssues, setDashboardIssues] = useState(workspace.dashboardIssues);
+
+  // Sync state when active project changes
+  React.useEffect(() => {
+    setRecentUploads(workspace.recentUploads);
+    setDashboardIssues(workspace.dashboardIssues);
+  }, [activeProject.id]);
 
   // Handle local simulation of resolving issues
   const resolveIssueLocally = (id: string) => {
@@ -130,10 +105,10 @@ export default function DashboardView() {
             clearInterval(interval);
             setTimeout(() => {
               setIsUploading(false);
-              const newFile = {
+              const newFile: { id: string; name: string; type: "video" | "laser" | "cad" | "report"; size: string; date: string; uploader: string; status: string } = {
                 id: `up-${Date.now()}`,
                 name: file.name,
-                type: file.name.endsWith(".ifc") ? "cad" : file.name.endsWith(".mp4") ? "video" : file.name.match(/\.(jpg|jpeg|png)$/i) ? "video" : "laser",
+                type: (file.name.endsWith(".ifc") ? "cad" : file.name.endsWith(".mp4") ? "video" : file.name.match(/\.(jpg|jpeg|png)$/i) ? "video" : "laser") as "video" | "laser" | "cad" | "report",
                 size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
                 date: "Just now",
                 uploader: "Staff Operator (You)",
@@ -169,7 +144,7 @@ export default function DashboardView() {
         <div className="space-y-1 relative z-10">
           <div className="flex items-center gap-2">
             <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
-              BuildTrace Enterprise Center
+              TracProgress Enterprise Center
             </span>
             <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
               RERA Compliant

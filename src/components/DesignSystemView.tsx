@@ -581,7 +581,7 @@ export default function DesignSystemView() {
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b border-slate-100 pb-2">
                     <span className="text-slate-400 font-semibold">Registered Company:</span>
-                    <span className="font-extrabold text-slate-800">BuildTrace India Private Limited</span>
+                    <span className="font-extrabold text-slate-800">TracProgress India Private Limited</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-100 pb-2">
                     <span className="text-slate-400 font-semibold">HQ Address:</span>

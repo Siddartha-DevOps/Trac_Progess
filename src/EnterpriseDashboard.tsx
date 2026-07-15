@@ -1770,7 +1770,7 @@ export default function EnterpriseDashboard() {
                   <Sliders className="w-4 h-4 text-indigo-500" />
                   Configure Automated Threshold Trigger Rules
                 </h3>
-                <p className="text-slate-500 text-[11px]">Specify exact criteria. If the project metrics violate these thresholds, BuildTrace will dispatch immediate SMS/email alerts.</p>
+                <p className="text-slate-500 text-[11px]">Specify exact criteria. If the project metrics violate these thresholds, TracProgress will dispatch immediate SMS/email alerts.</p>
 
                 <form onSubmit={addRuleHandler} className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
                   <div className="sm:col-span-2">

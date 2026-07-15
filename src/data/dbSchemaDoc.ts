@@ -356,7 +356,7 @@ export const ENTERPRISE_DB_TABLES: DbTableInfo[] = [
 ];
 
 export const PRISMA_SCHEMA_CODE = `// ==========================================
-// BuildTrace India: Enterprise PostgreSQL Schema
+// TracProgress India: Enterprise PostgreSQL Schema
 // Powered by Prisma v5 - Conforms to RERA Site Audits
 // ==========================================
 

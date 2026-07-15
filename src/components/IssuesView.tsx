@@ -34,6 +34,7 @@ import {
   Sparkle
 } from "lucide-react";
 import { useAppStore } from "../store";
+import { db } from "../services/db";
 
 // Enriched Type Interfaces matching enterprise specification
 interface Comment {
@@ -185,11 +186,136 @@ const INITIAL_ISSUES: ConstructionIssue[] = [
 ];
 
 export default function IssuesView() {
-  const { setActiveTab } = useAppStore();
+  const { activeProject, setActiveTab } = useAppStore();
   
   // Real State management
   const [issues, setIssues] = useState<ConstructionIssue[]>(INITIAL_ISSUES);
   const [selectedIssueId, setSelectedIssueId] = useState<string>(INITIAL_ISSUES[0].id);
+
+  // Synchronize issues and select first issue on active project switch
+  React.useEffect(() => {
+    const syncIssues = () => {
+      let projectIssues = INITIAL_ISSUES;
+      if (activeProject.id === "mumbai-metro-3") {
+        projectIssues = [
+          {
+            id: "iss-201",
+            elementId: "vent_sump_drain",
+            title: "Underground Drainage Sump Grouting Leakage",
+            category: "MEP",
+            priority: "Critical",
+            status: "Open",
+            assignedTo: "Venkatesh Rao (MEP Lead)",
+            detectedDate: "2026-07-07",
+            description: "Laser scanning detected heavy moisture seepage and grouting shift at station level -2. High groundwater pressure threatens structural integrity of station platform base.",
+            bimImageLabel: "BIM Coordinated Sump Details (Level -2)",
+            scanImageLabel: "Station Ingress Run #02 LiDAR Scan",
+            aiOverlayTitle: "Moisture Ingress Risk",
+            aiOverlayConfidence: 94.8,
+            aiOverlayDeviation: "Excessive Moisture in Grout Joints",
+            aiRecommendation: "Acknowledge variance immediately. Perform high-pressure polyurethane (PU) injection chemical grouting along the structural seam to isolate the sump structure from external water table.",
+            diagramType: "clash",
+            comments: [
+              { id: "c1", author: "Venkatesh Rao", role: "MEP Lead", text: "Water flow is active. We are deploying secondary sump pumps before injecting grouting material.", date: "2026-07-07 15:30" }
+            ],
+            history: [
+              { id: "h1", event: "Sensor Triggered", user: "System", date: "2026-07-07 14:00", details: "Subgrade moisture sensor detected high ground water pressure shift." }
+            ],
+            uploadedImages: []
+          },
+          {
+            id: "iss-202",
+            elementId: "tunnel_ring_45b",
+            title: "Tunnel Ring Segment 45B Geometric Shift (+32mm)",
+            category: "Structure",
+            priority: "Critical",
+            status: "Open",
+            assignedTo: "Rajesh Kumar (QC Engineer)",
+            detectedDate: "2026-07-10",
+            description: "LiDAR scan registers segment Ring 45B is shifted out of circular alignment. Intersecting with the main trackway drainage pipe envelope.",
+            bimImageLabel: "Tunnel Core Plan Layout (Ring 45B)",
+            scanImageLabel: "TBM Segment Assembly Automated Camera Scan",
+            aiOverlayTitle: "Circular Deviation",
+            aiOverlayConfidence: 97.2,
+            aiOverlayDeviation: "+32mm Radial Offset",
+            aiRecommendation: "Inspect TBM thrust shoe hydraulic logs. Structural team must verify load-bearing safety calculations for Segment 45B. Trim the track drainage pipe sleeve to avoid direct collision.",
+            diagramType: "column",
+            comments: [],
+            history: [],
+            uploadedImages: []
+          }
+        ];
+      } else if (activeProject.id === "cybercity-ph2") {
+        projectIssues = [
+          {
+            id: "iss-301",
+            elementId: "hvac_riser_l12",
+            title: "Slab MEP Cable Sleeves Omission L12",
+            category: "MEP",
+            priority: "Critical",
+            status: "Open",
+            assignedTo: "Amit Sharma (BIM Manager)",
+            detectedDate: "2026-07-12",
+            description: "Autonomous drone photogrammetry scanning confirms 4 conduit sleeves were omitted in Level 12 structural floor slab before concrete pouring. High risk of costly post-pour core drilling.",
+            bimImageLabel: "Slab L12 MEP Cable Routing Plan",
+            scanImageLabel: "Formwork Inspection Photogrammetry Scan Frame #14",
+            aiOverlayTitle: "Missing Conduit Sleeve",
+            aiOverlayConfidence: 99.1,
+            aiOverlayDeviation: "4 Omitted Penetrable Sleeves",
+            aiRecommendation: "Instruct subcontractor to halt concrete pour. Manually verify layout and install 4 high-temperature PVC sleeves before structural mix arrival on site.",
+            diagramType: "rebar",
+            comments: [
+              { id: "c1", author: "Amit Sharma", role: "BIM Manager", text: "Good catch by the drone scanner. Halting concrete dispatch until formwork is modified.", date: "2026-07-12 09:30" }
+            ],
+            history: [
+              { id: "h1", event: "Omission Detected", user: "AI Autopilot", date: "2026-07-12 09:12" }
+            ],
+            uploadedImages: []
+          }
+        ];
+      } else if (activeProject.id === "hyd-it-hub") {
+        projectIssues = [];
+      }
+
+      // Fetch custom issues from reactive DB
+      const dbIssues = db.getIssues().filter(i => i.id.startsWith("anom_"));
+      const mappedDbIssues: ConstructionIssue[] = dbIssues.map(i => ({
+        id: i.id,
+        elementId: i.elementId,
+        title: i.title,
+        category: i.category === "MEP Collision" ? "MEP" : (i.category === "Reinforcement" ? "Structure" : "Arch"),
+        priority: i.level === "critical" || i.level === "high" ? "Critical" : (i.level === "medium" ? "Medium" : "Low"),
+        status: i.status === "open" ? "Open" : "Resolved",
+        assignedTo: i.assignedTradeId === "trade-con" ? "L&T Construction (Structure Sub)" : "Sterling & Wilson (MEP Sub)",
+        detectedDate: i.detectedAt === "Just now" ? "2026-07-14" : "2026-07-12",
+        description: i.description,
+        bimImageLabel: `BIM Design Geometry for ${i.elementName}`,
+        scanImageLabel: "Drone Walk Photogrammetry Layer Match",
+        aiOverlayTitle: i.category,
+        aiOverlayConfidence: 94.6,
+        aiOverlayDeviation: i.deviation,
+        aiRecommendation: i.possibleCause,
+        diagramType: "column",
+        comments: [],
+        history: [
+          { id: `h-${i.id}`, event: "Detected by AI", user: "Computer Vision Engine", date: "2026-07-14" }
+        ],
+        uploadedImages: []
+      }));
+
+      const finalIssues = [...mappedDbIssues, ...projectIssues];
+      setIssues(finalIssues);
+      if (finalIssues.length > 0) {
+        setSelectedIssueId(prev => finalIssues.some(fi => fi.id === prev) ? prev : finalIssues[0].id);
+      } else {
+        setSelectedIssueId("");
+      }
+    };
+
+    syncIssues();
+    const unsubscribe = db.subscribe(syncIssues);
+    return () => unsubscribe();
+  }, [activeProject.id]);
   
   // Filter settings
   const [statusFilter, setStatusFilter] = useState<"All" | "Open" | "Resolved">("All");
@@ -485,7 +611,7 @@ export default function IssuesView() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `BuildTrace_Issues_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `TracProgress_Issues_Report_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

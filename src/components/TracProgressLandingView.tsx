@@ -48,6 +48,11 @@ import {
   Youtube
 } from "lucide-react";
 import { useAppStore } from "../store";
+import AIProgressPlayground from "./AIProgressPlayground";
+import InteractiveComparison from "./InteractiveComparison";
+import EnterpriseROICalculator from "./EnterpriseROICalculator";
+import DigitalTwinProgressMap from "./DigitalTwinProgressMap";
+import DelayPredictionDashboard from "./DelayPredictionDashboard";
 
 // tracprogress Core Feature breakdown list
 const TRAC_PROGRES_PRODUCTS = [
@@ -196,7 +201,8 @@ export default function TracProgressLandingView() {
   
   // Interactive States
   const [showPromoBanner, setShowPromoBanner] = useState(true);
-  const [activeTab, setActiveTab] = useState<"platform" | "calculator" | "how-it-works" | "use-cases">("platform");
+  const [activeTab, setActiveTab] = useState<"platform" | "calculator" | "how-it-works" | "use-cases" | "ai-lab">("platform");
+  const [activeLabDemo, setActiveLabDemo] = useState<string>("playground");
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   
   // Interactive diagram node state
@@ -415,8 +421,8 @@ export default function TracProgressLandingView() {
 
             <h1 className="text-4xl md:text-5xl xl:text-[56px] font-black tracking-tight text-white leading-[1.08] max-w-xl">
               Construction intelligence <br />
-              to power your whole <br />
-              operation.
+              to track your project <br />
+              real-time.
             </h1>
 
             <p className="text-sm md:text-base text-slate-300 mt-6 max-w-lg leading-relaxed font-sans">
@@ -1709,6 +1715,7 @@ export default function TracProgressLandingView() {
                 { id: "platform", label: "Core Products", icon: Layers },
                 { id: "how-it-works", label: "Workflow (Step-by-Step)", icon: Compass },
                 { id: "calculator", label: "Interactive ROI Estimator", icon: DollarSign },
+                { id: "ai-lab", label: "AI Innovation Lab (Demos)", icon: Sparkles },
                 { id: "use-cases", label: "Use Cases", icon: Briefcase }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -1989,6 +1996,48 @@ export default function TracProgressLandingView() {
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* TAB 5: AI INNOVATION LAB (DEMOS) */}
+          {activeTab === "ai-lab" && (
+            <div className="flex flex-col gap-8 w-full animate-fadeIn">
+              {/* Sub-tabs/Sub-menu for the 5 live demos */}
+              <div className="flex flex-wrap justify-center gap-2 p-2 bg-slate-950/80 rounded-2xl border border-slate-800/80 w-full max-w-5xl mx-auto shadow-xl">
+                {[
+                  { id: "playground", label: "AI Progress Detector", icon: Cpu, desc: "Segment wall structures" },
+                  { id: "comparison", label: "BIM vs Site Reality", icon: Layers, desc: "Split-screen swiper" },
+                  { id: "roi", label: "Capital ROI Engine", icon: DollarSign, desc: "Animate timeline gains" },
+                  { id: "twin-map", label: "2D Digital Twin Floor Plan", icon: Compass, desc: "Clickable unit zones" },
+                  { id: "prediction", label: "AI Delay Prediction HUD", icon: Activity, desc: "Critical path analysis" }
+                ].map((demo) => {
+                  const DemoIcon = demo.icon;
+                  const isActive = activeLabDemo === demo.id;
+                  return (
+                    <button
+                      key={demo.id}
+                      onClick={() => setActiveLabDemo(demo.id)}
+                      className={`flex-1 min-w-[160px] md:min-w-[180px] p-3 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5 text-center cursor-pointer border ${
+                        isActive 
+                          ? "bg-amber-500 text-slate-950 border-amber-400 font-black shadow-lg shadow-amber-500/10" 
+                          : "bg-slate-900/40 text-slate-400 border-transparent hover:text-white hover:bg-slate-900/80 hover:border-slate-800"
+                      }`}
+                    >
+                      <DemoIcon className={`w-4 h-4 shrink-0 ${isActive ? "text-slate-950" : "text-amber-500"}`} />
+                      <span className="font-mono text-[11px] uppercase tracking-wide">{demo.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Render Selected Interactive Demo */}
+              <div className="w-full">
+                {activeLabDemo === "playground" && <AIProgressPlayground />}
+                {activeLabDemo === "comparison" && <InteractiveComparison />}
+                {activeLabDemo === "roi" && <EnterpriseROICalculator />}
+                {activeLabDemo === "twin-map" && <DigitalTwinProgressMap />}
+                {activeLabDemo === "prediction" && <DelayPredictionDashboard />}
+              </div>
             </div>
           )}
 

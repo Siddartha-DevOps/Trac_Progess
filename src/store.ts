@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import { BIMElement, Anomaly } from "./types";
-import { SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP } from "./data";
+import { SITE_ANOMALIES, BIM_ELEMENTS_LOOKUP, getProjectBimElements } from "./data";
 
 export type TabType = 
   | "dashboard"
+  | "workflow-engine"
   | "projects"
   | "bim-models"
   | "site-progress"
@@ -18,7 +19,11 @@ export type TabType =
   | "architecture"
   | "prd"
   | "roadmap"
-  | "design-system";
+  | "design-system"
+  | "commercial-billing"
+  | "quality-management"
+  | "intelligence-engine"
+  | "reality-capture";
 
 interface AppState {
   // Navigation & Layout
@@ -104,7 +109,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ selectedElement: null, selectedAnomaly: null });
       return;
     }
-    const element = BIM_ELEMENTS_LOOKUP.find((e) => e.id === id) || null;
+    const projectId = get().activeProject.id;
+    const projectBimElements = getProjectBimElements(projectId);
+    const found = projectBimElements.find((e) => e.id === id);
+    
+    let element: BIMElement | null = null;
+    if (found) {
+      element = {
+        id: found.id,
+        name: found.name,
+        category: found.category,
+        type: found.type as any,
+        progress: found.status === "completed" ? 100 : (found.status === "in_progress" ? 60 : (found.status === "delayed" ? 30 : 0)),
+        status: found.status === "completed" ? "completed" : (found.status === "delayed" ? "delayed" : (found.status === "in_progress" ? "in_progress" : "not_started")),
+        position: found.position,
+        size: found.size,
+        anomalyId: BIM_ELEMENTS_LOOKUP.find(l => l.id === found.id)?.anomalyId
+      };
+    }
+    
     set({ selectedElement: element });
     
     // Auto-sync anomaly if it exists
@@ -126,7 +149,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     // Auto-sync element if it exists
     if (anomaly && anomaly.elementId) {
-      const element = BIM_ELEMENTS_LOOKUP.find((e) => e.id === anomaly.elementId) || null;
+      const projectId = get().activeProject.id;
+      const projectBimElements = getProjectBimElements(projectId);
+      const found = projectBimElements.find((e) => e.id === anomaly.elementId);
+      
+      let element: BIMElement | null = null;
+      if (found) {
+        element = {
+          id: found.id,
+          name: found.name,
+          category: found.category,
+          type: found.type as any,
+          progress: found.status === "completed" ? 100 : (found.status === "in_progress" ? 60 : (found.status === "delayed" ? 30 : 0)),
+          status: found.status === "completed" ? "completed" : (found.status === "delayed" ? "delayed" : (found.status === "in_progress" ? "in_progress" : "not_started")),
+          position: found.position,
+          size: found.size,
+          anomalyId: anomaly.id
+        };
+      }
       set({ selectedElement: element });
     } else {
       set({ selectedElement: null });

@@ -37,7 +37,7 @@ async function startServer() {
     res.json({
       status: "ok",
       timestamp: new Date().toISOString(),
-      platform: "BuildTrace India AI Engine",
+      platform: "TracProgress India AI Engine",
       cvModel: "PyTorch YOLO-v8 Site Progress Network",
       bimEngine: "Three.js IFC Parser v2.1"
     });
@@ -51,7 +51,7 @@ async function startServer() {
       const client = getGeminiClient();
       
       const prompt = `
-You are the Lead AI Construction Site Auditor & BIM Integration Expert for BuildTrace India, a computer-vision based progress monitoring platform.
+You are the Lead AI Construction Site Auditor & BIM Integration Expert for TracProgress India, a computer-vision based progress monitoring platform.
 A user is inspecting a specific drone-captured site progress anomaly or construction discrepancy.
 
 Here is the context of the issue:
@@ -94,7 +94,7 @@ Format your response in beautiful, clear Markdown, using bold headers and clean 
       
       // Fallback response for missing API key or transient failures so the app stays functional & looks incredible
       const fallbackReport = `
-### ⚠️ BuildTrace AI - Offline Inspection Report (Simulated)
+### ⚠️ TracProgress AI - Offline Inspection Report (Simulated)
 
 The Live Gemini AI connection is currently using our offline backup engine. Below is an automated inspection and remediation protocol based on the selected anomaly parameters:
 
@@ -108,7 +108,7 @@ The Live Gemini AI connection is currently using our offline backup engine. Belo
 * **Material Discrepancy:** Potential supply bottleneck of standard Grade Fe550D TMT reinforcement bars, leading to unauthorized use of local alternatives or under-reinforcement.
 
 #### 3. 3-Step Remediation Workflow
-1. **Physical Stop-Work & Audit:** Issue an immediate digital **Non-Conformance Report (NCR)** via BuildTrace. Place a physical tag on the Zone.
+1. **Physical Stop-Work & Audit:** Issue an immediate digital **Non-Conformance Report (NCR)** via TracProgress. Place a physical tag on the Zone.
 2. **Re-Bar Realignment:** Install the missing reinforcement spacing elements as per IFC specs. Use hand-held 360-degree scanners to upload a localized point cloud for immediate validation.
 3. **Vantage Photogrammetry Audit:** Schedule an ad-hoc drone progress capture. Run the alignment comparison pipeline (ICP) to verify progress before authorizing concrete pouring.
 

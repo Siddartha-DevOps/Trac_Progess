@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { IBIMViewerEngine, BIMElementMetadata, parseIFCFileText } from "./BIMViewerAbstraction";
+import { useAppStore } from "../../store";
+import { getProjectBimElements } from "../../data";
 
 // Default Mock dataset in IFC format structure with global IDs (GUIDs)
 export const DEFAULT_BIM_DATASET: BIMElementMetadata[] = [
@@ -312,7 +314,7 @@ export class IFCJsViewerEngine implements IBIMViewerEngine {
   private renderer: THREE.WebGLRenderer | null = null;
   private scene: THREE.Scene | null = null;
   private camera: THREE.PerspectiveCamera | null = null;
-  private elements: BIMElementMetadata[] = [...DEFAULT_BIM_DATASET];
+  private elements: BIMElementMetadata[] = [];
   
   // Custom Filters & View Settings
   private activeFloor: string | null = null;
@@ -345,7 +347,14 @@ export class IFCJsViewerEngine implements IBIMViewerEngine {
   private measurementMeshes: (THREE.Mesh | THREE.Line)[] = [];
   private onMeasureCallback: ((distance: number | null, p1?: [number, number, number], p2?: [number, number, number]) => void) | null = null;
 
-  constructor() {}
+  constructor() {
+    try {
+      const activeProjectId = useAppStore.getState().activeProject.id;
+      this.elements = getProjectBimElements(activeProjectId);
+    } catch (e) {
+      this.elements = [...DEFAULT_BIM_DATASET];
+    }
+  }
 
   getEngineName(): string {
     return "IFC.js WebEngine v2.4 (HTML5 Canvas Abstraction)";

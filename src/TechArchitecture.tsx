@@ -676,7 +676,7 @@ export default function TechArchitecture() {
                 <span>Enterprise SLA Compliance</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                This architecture document corresponds to BuildTrace production benchmark level 4.2. Designed to handle up to 25,000 active RERA-audited projects in concurrent execution.
+                This architecture document corresponds to TracProgress production benchmark level 4.2. Designed to handle up to 25,000 active RERA-audited projects in concurrent execution.
               </p>
             </div>
 
@@ -690,7 +690,7 @@ export default function TechArchitecture() {
               <span className="uppercase font-bold tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                 {selectedSection.category}
               </span>
-              <span>BuildTrace Standard System Spec v1.4</span>
+              <span>TracProgress Standard System Spec v1.4</span>
             </div>
 
             {/* Rendered content */}
@@ -1843,7 +1843,7 @@ export default function TechArchitecture() {
                   <span className="uppercase font-bold tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                     {selectedCVSection.category}
                   </span>
-                  <span>BuildTrace Deep Learning Spec v2.1</span>
+                  <span>TracProgress Deep Learning Spec v2.1</span>
                 </div>
 
                 {/* Rendered content */}

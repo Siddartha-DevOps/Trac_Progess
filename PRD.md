@@ -1,15 +1,15 @@
 # Product Requirements Document (PRD)
 
-## Project Name: BuildTrace India
+## Project Name: TracProgress
 **Sub-title:** AI-Driven Real-time Construction Site Progress Tracking & Verification System
 
 ---
 
 ## 1. Executive Summary & Vision
 
-BuildTrace India is a full-stack, enterprise-grade alternative to platforms like Buildots. It targets high-scale commercial real estate and public infrastructure projects across India (conforming strictly to **RERA - Real Estate Regulatory Authority** timeline audit baselines). 
+TracProgress is a full-stack, enterprise-grade alternative to platforms like Buildots. It targets high-scale commercial real estate and public infrastructure projects across India (conforming strictly to **RERA - Real Estate Regulatory Authority** timeline audit baselines). 
 
-By integrating ultra-high-resolution drone orthomosaics, 360-degree helmet walk-through cameras, and 3D IFC BIM coordinates models, BuildTrace automatically verifies physically completed construction elements on site and highlights quality, alignment, and scheduling anomalies.
+By integrating ultra-high-resolution drone orthomosaics, 360-degree helmet walk-through cameras, and 3D IFC BIM coordinates models, TracProgress automatically verifies physically completed construction elements on site and highlights quality, alignment, and scheduling anomalies.
 
 ---
 

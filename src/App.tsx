@@ -29,6 +29,10 @@ import IntelligenceEngineView from "./components/IntelligenceEngineView";
 import RealityCaptureWorkspace from "./components/RealityCaptureWorkspace";
 import SafetyIntelligenceView from "./components/SafetyIntelligenceView";
 import InteractiveWorkflows from "./components/InteractiveWorkflows";
+import BrutalAuditView from "./components/BrutalAuditView";
+import FuturisticACOSView from "./components/FuturisticACOSView";
+import BuildotsEnterpriseEngine from "./components/BuildotsEnterpriseEngine";
+import Phase1SlamCapabilitiesEngine from "./components/Phase1SlamCapabilitiesEngine";
 import { Camera } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
@@ -59,6 +63,7 @@ import {
   ShieldAlert,
   Sliders,
   ShieldCheck,
+  Orbit,
   LayoutDashboard,
   Briefcase,
   Users,
@@ -589,6 +594,82 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab("audit")}
+                  aria-current={activeTab === "audit" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "audit"
+                      ? "bg-red-600 text-white shadow-sm font-bold"
+                      : "text-red-600/90 hover:bg-red-500/10 hover:text-red-400"
+                  }`}
+                  title="Brutal Codebase Audit"
+                >
+                  <ShieldAlert className={`w-4 h-4 shrink-0 ${activeTab === "audit" ? "text-white" : "text-red-500"}`} />
+                  {isSidebarExpanded && (
+                    <span className="flex-1 flex justify-between items-center">
+                      <span>Brutal Audit</span>
+                      <span className="bg-red-500/20 text-red-500 text-[8px] font-bold px-1 py-0.5 rounded border border-red-500/30">CRITICAL</span>
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("enterprise-engine")}
+                  aria-current={activeTab === "enterprise-engine" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "enterprise-engine"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
+                  }`}
+                  title="Buildots Enterprise Capabilities Engine"
+                >
+                  <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "enterprise-engine" ? "text-white" : "text-indigo-400"}`} />
+                  {isSidebarExpanded && (
+                    <span className="flex-1 flex justify-between items-center">
+                      <span>Enterprise Engine</span>
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">READY</span>
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("phase1-slam")}
+                  aria-current={activeTab === "phase1-slam" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "phase1-slam"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
+                  }`}
+                  title="Phase 1 SLAM & Trajectory Engine Specifications"
+                >
+                  <Activity className={`w-4 h-4 shrink-0 ${activeTab === "phase1-slam" ? "text-white" : "text-indigo-400"}`} />
+                  {isSidebarExpanded && (
+                    <span className="flex-1 flex justify-between items-center">
+                      <span>Phase 1 SLAM</span>
+                      <span className="bg-indigo-500/20 text-indigo-400 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">SPECS</span>
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("acos")}
+                  aria-current={activeTab === "acos" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "acos"
+                      ? "bg-cyan-600 text-white shadow-sm font-bold"
+                      : "text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+                  }`}
+                  title="Next-Gen ACOS Operating System"
+                >
+                  <Orbit className={`w-4 h-4 shrink-0 ${activeTab === "acos" ? "text-white" : "text-cyan-400"}`} />
+                  {isSidebarExpanded && (
+                    <span className="flex-1 flex justify-between items-center">
+                      <span>ACOS 2035</span>
+                      <span className="bg-cyan-500/20 text-cyan-400 text-[8px] font-bold px-1 py-0.5 rounded border border-cyan-500/30">AI-NATIVE</span>
+                    </span>
+                  )}
+                </button>
+
+                <button
                   onClick={() => setActiveTab("design-system")}
                   aria-current={activeTab === "design-system" ? "page" : undefined}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
@@ -949,6 +1030,26 @@ export default function App() {
           {/* TAB 17: Enterprise Safety Intelligence Platform */}
           {activeTab === "safety-intelligence" && (
             <SafetyIntelligenceView />
+          )}
+
+          {/* TAB 18: Brutal Codebase Audit */}
+          {activeTab === "audit" && (
+            <BrutalAuditView />
+          )}
+
+          {/* TAB 18b: Buildots Enterprise Capabilities Engine */}
+          {activeTab === "enterprise-engine" && (
+            <BuildotsEnterpriseEngine />
+          )}
+
+          {/* TAB 18c: Phase 1 SLAM & Trajectory Specifications */}
+          {activeTab === "phase1-slam" && (
+            <Phase1SlamCapabilitiesEngine />
+          )}
+
+          {/* TAB 19: Next-Gen ACOS Operating System */}
+          {activeTab === "acos" && (
+            <FuturisticACOSView />
           )}
 
         </main>

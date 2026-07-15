@@ -25,7 +25,11 @@ export type TabType =
   | "quality-management"
   | "intelligence-engine"
   | "reality-capture"
-  | "safety-intelligence";
+  | "safety-intelligence"
+  | "audit"
+  | "acos"
+  | "enterprise-engine"
+  | "phase1-slam";
 
 interface AppState {
   // Navigation & Layout

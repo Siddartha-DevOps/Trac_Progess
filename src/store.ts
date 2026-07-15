@@ -23,7 +23,8 @@ export type TabType =
   | "commercial-billing"
   | "quality-management"
   | "intelligence-engine"
-  | "reality-capture";
+  | "reality-capture"
+  | "safety-intelligence";
 
 interface AppState {
   // Navigation & Layout

@@ -27,6 +27,7 @@ import CommercialBillingView from "./components/CommercialBillingView";
 import QualityManagementView from "./components/QualityManagementView";
 import IntelligenceEngineView from "./components/IntelligenceEngineView";
 import RealityCaptureWorkspace from "./components/RealityCaptureWorkspace";
+import SafetyIntelligenceView from "./components/SafetyIntelligenceView";
 import { Camera } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
@@ -64,7 +65,8 @@ import {
   Calendar,
   Hammer,
   Cpu,
-  ClipboardCheck
+  ClipboardCheck,
+  Shield
 } from "lucide-react";
 
 export default function App() {
@@ -420,6 +422,25 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>Issues</span>
                       <span className="bg-red-50 text-red-600 text-[9px] font-bold px-1.5 py-0.2 rounded-full">4</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("safety-intelligence")}
+                  aria-current={activeTab === "safety-intelligence" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "safety-intelligence"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Enterprise Safety Intelligence Hub"
+                >
+                  <Shield className={`w-4 h-4 shrink-0 ${activeTab === "safety-intelligence" ? "text-white" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Safety Intelligence</span>
+                      <span className="bg-emerald-50 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-100 font-mono">HSE</span>
                     </div>
                   )}
                 </button>
@@ -898,6 +919,11 @@ export default function App() {
           {/* TAB 16: Interactive Design System Showcase */}
           {activeTab === "design-system" && (
             <DesignSystemView />
+          )}
+
+          {/* TAB 17: Enterprise Safety Intelligence Platform */}
+          {activeTab === "safety-intelligence" && (
+            <SafetyIntelligenceView />
           )}
 
         </main>

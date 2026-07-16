@@ -201,7 +201,7 @@ export default function TracProgressLandingView() {
   
   // Interactive States
   const [showPromoBanner, setShowPromoBanner] = useState(true);
-  const [activeTab, setActiveTab] = useState<"platform" | "calculator" | "how-it-works" | "use-cases" | "ai-lab">("platform");
+  const [activeTab, setActiveTab] = useState<"platform" | "calculator" | "how-it-works" | "use-cases" | "ai-lab">("ai-lab");
   const [activeLabDemo, setActiveLabDemo] = useState<string>("playground");
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   
@@ -327,21 +327,21 @@ export default function TracProgressLandingView() {
                     <div className="flex flex-col gap-3">
                       <div className="text-[11px] font-bold text-amber-400 uppercase font-mono tracking-wider">Capabilities</div>
                       <div className="grid gap-2">
-                        <button onClick={() => { setActiveTab("platform"); }} className="text-left text-xs p-2 rounded-lg hover:bg-white/5 transition flex items-start gap-2.5 cursor-pointer">
+                        <button onClick={() => { setActiveTab("how-it-works"); }} className="text-left text-xs p-2 rounded-lg hover:bg-white/5 transition flex items-start gap-2.5 cursor-pointer">
                           <Camera className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-semibold text-white">Helmet Capture Walks</div>
                             <div className="text-[10px] text-slate-400 mt-0.5">Capture with standard 360° cameras</div>
                           </div>
                         </button>
-                        <button onClick={() => { setActiveTab("platform"); }} className="text-left text-xs p-2 rounded-lg hover:bg-white/5 transition flex items-start gap-2.5 cursor-pointer">
+                        <button onClick={() => { setActiveTab("ai-lab"); }} className="text-left text-xs p-2 rounded-lg hover:bg-white/5 transition flex items-start gap-2.5 cursor-pointer">
                           <Cpu className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-semibold text-white">AI BIM Auto-Mapping</div>
                             <div className="text-[10px] text-slate-400 mt-0.5">Compare physical installs vs IFC model</div>
                           </div>
                         </button>
-                        <button onClick={() => { setActiveTab("platform"); }} className="text-left text-xs p-2 rounded-lg hover:bg-white/5 transition flex items-start gap-2.5 cursor-pointer">
+                        <button onClick={() => { setActiveTab("calculator"); }} className="text-left text-xs p-2 rounded-lg hover:bg-white/5 transition flex items-start gap-2.5 cursor-pointer">
                           <Table className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-semibold text-white">Granular Trade Sheets</div>
@@ -1712,10 +1712,9 @@ export default function TracProgressLandingView() {
             {/* Segment Controls */}
             <div className="flex flex-wrap justify-center gap-2 mt-8">
               {[
-                { id: "platform", label: "Core Products", icon: Layers },
+                { id: "ai-lab", label: "AI Innovation Lab (Demos)", icon: Sparkles },
                 { id: "how-it-works", label: "Workflow (Step-by-Step)", icon: Compass },
                 { id: "calculator", label: "Interactive ROI Estimator", icon: DollarSign },
-                { id: "ai-lab", label: "AI Innovation Lab (Demos)", icon: Sparkles },
                 { id: "use-cases", label: "Use Cases", icon: Briefcase }
               ].map((tab) => {
                 const Icon = tab.icon;

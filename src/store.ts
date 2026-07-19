@@ -29,7 +29,16 @@ export type TabType =
   | "audit"
   | "acos"
   | "enterprise-engine"
-  | "phase1-slam";
+  | "phase1-slam"
+  | "image-to-bim"
+  | "cv-progress-engine"
+  | "dataset-management"
+  | "image-annotation"
+  | "active-learning"
+  | "synthetic-generator"
+  | "model-registry"
+  | "experiment-tracker"
+  | "ai-evaluation";
 
 interface AppState {
   // Navigation & Layout

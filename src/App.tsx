@@ -33,7 +33,16 @@ import BrutalAuditView from "./components/BrutalAuditView";
 import FuturisticACOSView from "./components/FuturisticACOSView";
 import BuildotsEnterpriseEngine from "./components/BuildotsEnterpriseEngine";
 import Phase1SlamCapabilitiesEngine from "./components/Phase1SlamCapabilitiesEngine";
-import { Camera } from "lucide-react";
+import ImageToBimRegistrationEngine from "./components/ImageToBimRegistrationEngine";
+import CVProgressEngine from "./components/CVProgressEngine";
+import DatasetManagement from "./components/DatasetManagement";
+import ImageAnnotationPlatform from "./components/ImageAnnotationPlatform";
+import ActiveLearningPlatform from "./components/ActiveLearningPlatform";
+import SyntheticDatasetGenerator from "./components/SyntheticDatasetGenerator";
+import ModelRegistry from "./components/ModelRegistry";
+import ExperimentTracker from "./components/ExperimentTracker";
+import AIEvaluationDashboard from "./components/AIEvaluationDashboard";
+import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
@@ -72,7 +81,8 @@ import {
   Hammer,
   Cpu,
   ClipboardCheck,
-  Shield
+  Shield,
+  Compass
 } from "lucide-react";
 
 export default function App() {
@@ -319,6 +329,177 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>Reality Capture</span>
                       <span className="bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-100 uppercase font-mono">ACTIVE</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("image-to-bim")}
+                  aria-current={activeTab === "image-to-bim" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "image-to-bim"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-55 hover:text-slate-900"
+                  }`}
+                  title="Image-to-BIM Registration Engine"
+                >
+                  <Compass className={`w-4 h-4 shrink-0 ${activeTab === "image-to-bim" ? "text-white animate-spin" : "text-indigo-400"}`} style={{ animationDuration: activeTab === "image-to-bim" ? "12s" : "0s" }} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Image-To-BIM CV</span>
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">ENGINE</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("cv-progress-engine")}
+                  aria-current={activeTab === "cv-progress-engine" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "cv-progress-engine"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Computer Vision Site Progress Engine"
+                >
+                  <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "cv-progress-engine" ? "text-white animate-pulse" : "text-purple-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>CV Progress</span>
+                      <span className="bg-purple-500/20 text-purple-400 text-[8px] font-bold px-1 py-0.5 rounded border border-purple-500/30">PROGRESS</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("dataset-management")}
+                  aria-current={activeTab === "dataset-management" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "dataset-management"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Enterprise Dataset Management Platform"
+                >
+                  <Database className={`w-4 h-4 shrink-0 ${activeTab === "dataset-management" ? "text-white animate-pulse" : "text-indigo-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Dataset Hub</span>
+                      <span className="bg-blue-500/20 text-blue-400 text-[8px] font-bold px-1 py-0.5 rounded border border-blue-500/30">MLOPS</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("image-annotation")}
+                  aria-current={activeTab === "image-annotation" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "image-annotation"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Enterprise Annotation Studio (CVAT / Scale AI)"
+                >
+                  <Layers className={`w-4 h-4 shrink-0 ${activeTab === "image-annotation" ? "text-white animate-pulse" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Annotation Studio</span>
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">STUDIO</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("active-learning")}
+                  aria-current={activeTab === "active-learning" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "active-learning"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Active Learning & Hard Example Mining"
+                >
+                  <Brain className={`w-4 h-4 shrink-0 ${activeTab === "active-learning" ? "text-white animate-pulse" : "text-indigo-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Active Learning</span>
+                      <span className="bg-indigo-500/20 text-indigo-400 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">LOOP</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("synthetic-generator")}
+                  aria-current={activeTab === "synthetic-generator" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "synthetic-generator"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Synthetic Dataset Generator"
+                >
+                  <SparkleIcon className={`w-4 h-4 shrink-0 ${activeTab === "synthetic-generator" ? "text-white animate-pulse" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Synthetic Generator</span>
+                      <span className="bg-emerald-500/25 text-emerald-400 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">SYNTH</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("model-registry")}
+                  aria-current={activeTab === "model-registry" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "model-registry"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="AI Model Registry"
+                >
+                  <Brain className={`w-4 h-4 shrink-0 ${activeTab === "model-registry" ? "text-white animate-pulse" : "text-violet-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Model Registry</span>
+                      <span className="bg-violet-500/25 text-violet-400 text-[8px] font-bold px-1 py-0.5 rounded border border-violet-500/30">MLFLOW</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("experiment-tracker")}
+                  aria-current={activeTab === "experiment-tracker" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "experiment-tracker"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="W&B / MLflow Experiment Tracker"
+                >
+                  <TrendingUp className={`w-4 h-4 shrink-0 ${activeTab === "experiment-tracker" ? "text-white animate-pulse" : "text-indigo-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Experiment Tracker</span>
+                      <span className="bg-indigo-500/20 text-indigo-400 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">W&B</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("ai-evaluation")}
+                  aria-current={activeTab === "ai-evaluation" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "ai-evaluation"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="AI Evaluation Dashboard"
+                >
+                  <Gauge className={`w-4 h-4 shrink-0 ${activeTab === "ai-evaluation" ? "text-white animate-pulse" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Evaluation Suite</span>
+                      <span className="bg-emerald-500/20 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">EVAL</span>
                     </div>
                   )}
                 </button>
@@ -944,6 +1125,51 @@ export default function App() {
           {/* TAB 3b: Reality Capture Workspace */}
           {activeTab === "reality-capture" && (
             <RealityCaptureWorkspace />
+          )}
+
+          {/* TAB 3c: Image-to-BIM Registration Engine */}
+          {activeTab === "image-to-bim" && (
+            <ImageToBimRegistrationEngine />
+          )}
+
+          {/* TAB 3d: CV Progress Engine */}
+          {activeTab === "cv-progress-engine" && (
+            <CVProgressEngine />
+          )}
+
+          {/* TAB 3e: Dataset Management Platform */}
+          {activeTab === "dataset-management" && (
+            <DatasetManagement />
+          )}
+
+          {/* TAB 3f: Annotation Studio Platform */}
+          {activeTab === "image-annotation" && (
+            <ImageAnnotationPlatform />
+          )}
+
+          {/* TAB 3g: Active Learning Platform */}
+          {activeTab === "active-learning" && (
+            <ActiveLearningPlatform />
+          )}
+
+          {/* TAB 3h: Synthetic Construction Dataset Generator */}
+          {activeTab === "synthetic-generator" && (
+            <SyntheticDatasetGenerator />
+          )}
+
+          {/* TAB 3i: AI Model Registry (MLflow-like platform) */}
+          {activeTab === "model-registry" && (
+            <ModelRegistry />
+          )}
+
+          {/* TAB 3j: Experiment Tracker Platform (W&B / MLflow-like platform) */}
+          {activeTab === "experiment-tracker" && (
+            <ExperimentTracker />
+          )}
+
+          {/* TAB 3k: AI Evaluation Dashboard */}
+          {activeTab === "ai-evaluation" && (
+            <AIEvaluationDashboard />
           )}
 
           {/* TAB 4: Site Progress Details View */}

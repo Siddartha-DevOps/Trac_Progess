@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { 
+  initAuth, 
+  googleSignIn, 
+  logout, 
+  createAndPopulateSpreadsheet 
+} from "../services/googleAuth";
 import {
   Cpu,
   Compass,
@@ -77,6 +83,84 @@ interface VisionDefect {
 export default function BuildotsEnterpriseEngine() {
   const [activeTab, setActiveTab] = useState<"slam" | "bim_stream" | "p6_sync" | "boq_billing" | "vision_ai" | "helmet_hud">("slam");
   const [viewCode, setViewCode] = useState<boolean>(false);
+
+  // --- GOOGLE WORKSPACE SPREADSHEETS INTEGRATION STATE ---
+  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportedSheetUrl, setExportedSheetUrl] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState<boolean>(true);
+
+  useEffect(() => {
+    const unsubscribe = initAuth(
+      (user, token) => {
+        setGoogleUser(user);
+        setGoogleToken(token);
+        setNeedsAuth(false);
+      },
+      () => {
+        setGoogleUser(null);
+        setGoogleToken(null);
+        setNeedsAuth(true);
+      }
+    );
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    setExportError(null);
+    try {
+      const result = await googleSignIn();
+      if (result) {
+        setGoogleUser(result.user);
+        setGoogleToken(result.accessToken);
+        setNeedsAuth(false);
+      }
+    } catch (err: any) {
+      setExportError(err.message || "Failed to sign in with Google.");
+    }
+  };
+
+  const handleGoogleSignOut = async () => {
+    try {
+      await logout();
+      setGoogleUser(null);
+      setGoogleToken(null);
+      setNeedsAuth(true);
+      setExportedSheetUrl(null);
+    } catch (err: any) {
+      console.error("Sign-out error:", err);
+    }
+  };
+
+  const handleExportToSheets = async () => {
+    if (!googleToken) {
+      setExportError("Please sign in first to export data.");
+      return;
+    }
+    setIsExporting(true);
+    setExportError(null);
+    setExportedSheetUrl(null);
+
+    try {
+      const result = await createAndPopulateSpreadsheet(
+        googleToken,
+        activities,
+        boqItems,
+        visionDefects
+      );
+      setExportedSheetUrl(result.spreadsheetUrl);
+    } catch (err: any) {
+      setExportError(err.message || "Failed to create or populate Google Sheet.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // --- MODULE 1: SLAM COORDS REGISTRATION STATE ---
   const [slamLogs, setSlamLogs] = useState<string[]>([
@@ -804,7 +888,7 @@ class DirectInferenceEngine:
               Designed and implemented by the TracProgress Chief Architect team. This workbench holds active production-ready architectural models, live simulations, and production-grade source code blueprints covering our 6 key enterprise technical features.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
             <button
               onClick={() => setViewCode(!viewCode)}
               className={`px-4 py-2 text-xs font-bold font-mono rounded-lg border uppercase tracking-wider transition-all flex items-center gap-2 ${
@@ -816,9 +900,82 @@ class DirectInferenceEngine:
               <FileCode2 className="w-4 h-4" />
               {viewCode ? "Hide Code Blueprints" : "Show Code Blueprints"}
             </button>
+
+            {/* Google Authentication / Export Button */}
+            {needsAuth ? (
+              <button
+                onClick={handleGoogleSignIn}
+                className="px-4 py-2 text-xs font-bold font-mono rounded-lg border border-slate-850 bg-white text-slate-900 hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                title="Connect your Google Account to export audit logs and claims matrices directly to Google Sheets"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.59 5.59 0 0 1 8.4 12.925a5.59 5.59 0 0 1 5.59-5.59c2.314 0 4.17 1.22 5.148 3.12l3.435-3.435C20.355 4.71 17.43 3 13.99 3 8.472 3 4 7.472 4 12.99S8.472 22.98 13.99 22.98c5.738 0 10.01-4.032 10.01-10.155 0-.612-.054-1.2-.162-1.74H12.24z"/>
+                </svg>
+                <span>Connect Google Sheets</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportToSheets}
+                  disabled={isExporting}
+                  className="px-4 py-2 text-xs font-bold font-mono rounded-lg border border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/60 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <FileSpreadsheet className={`w-4 h-4 ${isExporting ? "animate-spin" : ""}`} />
+                  <span>{isExporting ? "Exporting..." : "Export to Sheets"}</span>
+                </button>
+                <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span className="max-w-[120px] truncate">{googleUser?.email}</span>
+                  <button 
+                    onClick={handleGoogleSignOut} 
+                    className="text-slate-500 hover:text-rose-400 font-bold ml-1 transition-colors underline cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* 1b. GOOGLE SHEETS EXPORT FEEDBACK NOTIFICATIONS */}
+      {(exportError || exportedSheetUrl) && (
+        <div className="animate-fade-in transition-all">
+          {exportError && (
+            <div className="bg-rose-950/40 border border-rose-500/30 text-rose-300 p-4 rounded-xl flex items-start gap-3 text-xs">
+              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold uppercase tracking-wider font-mono">Google Sheets Integration Error</p>
+                <p className="mt-1 text-rose-200">{exportError}</p>
+              </div>
+            </div>
+          )}
+
+          {exportedSheetUrl && (
+            <div className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 p-4 rounded-xl flex items-start justify-between gap-3 text-xs">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold uppercase tracking-wider font-mono">Google Sheet Created Successfully!</p>
+                  <p className="mt-1 text-emerald-200">
+                    The entire Buildots comparison matrices (P6 Schedule, BoQ claims, and Vision defects) have been exported into a brand new Google Spreadsheet with custom tabs.
+                  </p>
+                </div>
+              </div>
+              <a
+                href={exportedSheetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1.5 shrink-0 self-center transition-all shadow-lg shadow-emerald-500/10"
+              >
+                <span>Open Google Sheet</span>
+                <ChevronRight className="w-4 h-4 text-slate-950" />
+              </a>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 2. CAPABILITY SELECTOR PANEL (6 Core Missing Elements) */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 shrink-0">

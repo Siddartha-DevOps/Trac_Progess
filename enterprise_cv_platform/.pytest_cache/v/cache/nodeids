@@ -1,0 +1,7 @@
+[
+  "tests/test_schedule_delay_engine.py::test_deterministic_cpm_linear_chain",
+  "tests/test_schedule_delay_engine.py::test_deterministic_cpm_parallel_float",
+  "tests/test_schedule_delay_engine.py::test_monte_carlo_risk_simulation",
+  "tests/test_schedule_delay_engine.py::test_parse_ms_project_xml",
+  "tests/test_schedule_delay_engine.py::test_parse_primavera_p6_xml"
+]

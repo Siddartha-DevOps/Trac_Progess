@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import { ScheduleDelayEngineTS } from "./src/lib/scheduleEngine";
 
 // Lazy-initialized Gemini Client helper
 let aiClient: GoogleGenAI | null = null;
@@ -609,6 +610,67 @@ The Live Gemini AI connection is currently using our offline backup engine. Belo
       restoredTable: log.tableName,
       data: targetState
     });
+  });
+
+  // --- PREDICTIVE SCHEDULE DELAY ENGINE ENDPOINTS ---
+
+  // 1. POST Analyze XML schedule
+  app.post("/api/v1/schedule/analyze", (req, res) => {
+    const { xml_content, format = "auto" } = req.body;
+
+    if (!xml_content || typeof xml_content !== "string") {
+      return res.status(400).json({ error: "xml_content is required and must be a string." });
+    }
+
+    const content = xml_content.trim();
+    let fmt = format.toLowerCase();
+
+    if (fmt === "auto") {
+      if (content.includes("<Activities>") || content.includes("<APGProject>") || content.includes("http://www.primavera.com")) {
+        fmt = "p6";
+      } else if (content.includes("<Tasks>") || content.includes("http://schemas.microsoft.com/project")) {
+        fmt = "msp";
+      } else {
+        fmt = "p6"; // default fallback
+      }
+    }
+
+    try {
+      let project;
+      if (fmt === "p6") {
+        project = ScheduleDelayEngineTS.parseP6XML(content);
+      } else {
+        project = ScheduleDelayEngineTS.parseMSPXML(content);
+      }
+
+      const solvedProject = ScheduleDelayEngineTS.calculateCPM(project);
+      res.json(solvedProject);
+    } catch (error: any) {
+      console.error("Failed to parse and calculate CPM for schedule:", error);
+      res.status(422).json({ error: `Failed to parse schedule file: ${error.message}` });
+    }
+  });
+
+  // 2. POST Simulate Schedule Risk via Monte Carlo
+  app.post("/api/v1/schedule/simulate", (req, res) => {
+    const { project, iterations = 500, weather_severity = 1.0, labor_shortage_factor = 1.0 } = req.body;
+
+    if (!project || !project.activities || !project.relationships) {
+      return res.status(400).json({ error: "A valid schedule project object with activities and relationships is required." });
+    }
+
+    try {
+      const result = ScheduleDelayEngineTS.runMonteCarlo(
+        project,
+        iterations,
+        weather_severity,
+        labor_shortage_factor
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("Monte Carlo simulation failed:", error);
+      res.status(500).json({ error: `Monte Carlo simulation failed: ${error.message}` });
+    }
   });
 
   // Serve static files / Vite middleware

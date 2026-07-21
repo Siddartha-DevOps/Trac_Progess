@@ -38,7 +38,8 @@ export type TabType =
   | "synthetic-generator"
   | "model-registry"
   | "experiment-tracker"
-  | "ai-evaluation";
+  | "ai-evaluation"
+  | "tracprogress-ai-parity";
 
 interface AppState {
   // Navigation & Layout

@@ -80,7 +80,7 @@ interface VisionDefect {
   severity: "critical" | "warning" | "nominal";
 }
 
-export default function BuildotsEnterpriseEngine() {
+export default function TracProgressAIEngine() {
   const [activeTab, setActiveTab] = useState<"slam" | "bim_stream" | "p6_sync" | "boq_billing" | "vision_ai" | "helmet_hud">("slam");
   const [viewCode, setViewCode] = useState<boolean>(false);
 
@@ -882,7 +882,7 @@ class DirectInferenceEngine:
               <span className="text-[10px] text-slate-400 font-mono">STABILITY TARGET: LEVEL 5 PARITY</span>
             </div>
             <h1 className="text-2xl font-black mt-3 uppercase tracking-tight text-white flex items-center gap-2">
-              <Award className="w-6 h-6 text-indigo-400" /> Buildots Enterprise Capabilities Engine
+              <Award className="w-6 h-6 text-indigo-400" /> tracprogress.ai Enterprise Capabilities Engine
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-3xl leading-relaxed">
               Designed and implemented by the TracProgress Chief Architect team. This workbench holds active production-ready architectural models, live simulations, and production-grade source code blueprints covering our 6 key enterprise technical features.
@@ -959,7 +959,7 @@ class DirectInferenceEngine:
                 <div>
                   <p className="font-bold uppercase tracking-wider font-mono">Google Sheet Created Successfully!</p>
                   <p className="mt-1 text-emerald-200">
-                    The entire Buildots comparison matrices (P6 Schedule, BoQ claims, and Vision defects) have been exported into a brand new Google Spreadsheet with custom tabs.
+                    The entire comparison matrices (P6 Schedule, BoQ claims, and Vision defects) have been exported into a brand new Google Spreadsheet with custom tabs.
                   </p>
                 </div>
               </div>
@@ -1741,7 +1741,7 @@ class DirectInferenceEngine:
             Enterprise Transition Path: Level 5 Capabilities Checklist
           </h3>
           <p className="text-xs text-slate-400 mt-1">
-            System transition matrix to match and exceed the current benchmark set by **www.buildots.com** physical reality platform.
+            System transition matrix to match and exceed the current benchmark set by physical reality platforms.
           </p>
         </div>
 

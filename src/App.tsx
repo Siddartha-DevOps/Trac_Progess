@@ -31,7 +31,7 @@ import SafetyIntelligenceView from "./components/SafetyIntelligenceView";
 import InteractiveWorkflows from "./components/InteractiveWorkflows";
 import BrutalAuditView from "./components/BrutalAuditView";
 import FuturisticACOSView from "./components/FuturisticACOSView";
-import BuildotsEnterpriseEngine from "./components/BuildotsEnterpriseEngine";
+import TracProgressAIEngine from "./components/TracProgressAIEngine";
 import Phase1SlamCapabilitiesEngine from "./components/Phase1SlamCapabilitiesEngine";
 import ImageToBimRegistrationEngine from "./components/ImageToBimRegistrationEngine";
 import CVProgressEngine from "./components/CVProgressEngine";
@@ -42,7 +42,8 @@ import SyntheticDatasetGenerator from "./components/SyntheticDatasetGenerator";
 import ModelRegistry from "./components/ModelRegistry";
 import ExperimentTracker from "./components/ExperimentTracker";
 import AIEvaluationDashboard from "./components/AIEvaluationDashboard";
-import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge } from "lucide-react";
+import TracProgressAIParity from "./components/TracProgressAIParity";
+import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
@@ -505,6 +506,25 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab("tracprogress-ai-parity")}
+                  aria-current={activeTab === "tracprogress-ai-parity" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "tracprogress-ai-parity"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Benchmark & Parity Feature Comparison"
+                >
+                  <GitCompare className={`w-4 h-4 shrink-0 ${activeTab === "tracprogress-ai-parity" ? "text-white animate-pulse" : "text-amber-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Benchmark Parity</span>
+                      <span className="bg-amber-500/20 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-500/30">VS</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
                   onClick={() => setActiveTab("site-progress")}
                   aria-current={activeTab === "site-progress" ? "page" : undefined}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
@@ -801,12 +821,12 @@ export default function App() {
                       ? "bg-indigo-600 text-white shadow-sm font-bold"
                       : "text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
                   }`}
-                  title="Buildots Enterprise Capabilities Engine"
+                  title="tracprogress.ai Enterprise Capabilities Engine"
                 >
                   <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "enterprise-engine" ? "text-white" : "text-indigo-400"}`} />
                   {isSidebarExpanded && (
                     <span className="flex-1 flex justify-between items-center">
-                      <span>Enterprise Engine</span>
+                      <span>AI Engine Suite</span>
                       <span className="bg-emerald-500/20 text-emerald-400 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">READY</span>
                     </span>
                   )}
@@ -1172,6 +1192,11 @@ export default function App() {
             <AIEvaluationDashboard />
           )}
 
+          {/* TAB 3l: tracprogress.ai Parity & Competitor Comparison */}
+          {activeTab === "tracprogress-ai-parity" && (
+            <TracProgressAIParity />
+          )}
+
           {/* TAB 4: Site Progress Details View */}
           {activeTab === "site-progress" && (
             <div className="flex flex-col gap-6 animate-fade-in" id="site-progress-tab">
@@ -1263,9 +1288,9 @@ export default function App() {
             <BrutalAuditView />
           )}
 
-          {/* TAB 18b: Buildots Enterprise Capabilities Engine */}
+          {/* TAB 18b: tracprogress.ai Enterprise Capabilities Engine */}
           {activeTab === "enterprise-engine" && (
-            <BuildotsEnterpriseEngine />
+            <TracProgressAIEngine />
           )}
 
           {/* TAB 18c: Phase 1 SLAM & Trajectory Specifications */}

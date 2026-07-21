@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160" width="100%" height="100%" id="tracprogress-ai-official-logo">
+  <defs>
+    <!-- Primary Brand Gradients -->
+    <linearGradient id="primaryGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+
+    <linearGradient id="cubeLeftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+
+    <linearGradient id="cubeRightGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4338ca" />
+      <stop offset="100%" stop-color="#2e2a72" />
+    </linearGradient>
+
+    <linearGradient id="cubeTopGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="1" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Glowing Laser Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Subtle Drop Shadow for Cube -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- LOGO ICON (ISOMETRIC REALITY TRACKING EMBLEM) -->
+  <g transform="translate(10, 0)">
+    <!-- 3D Shadow Base -->
+    <ellipse cx="80" cy="115" rx="45" ry="12" fill="#e2e8f0" opacity="0.6" filter="url(#softShadow)" />
+
+    <!-- Isometric Structural Building Blocks (BIM Grid Representation) -->
+    <!-- Grid line templates mapped as subtle guidelines -->
+    <g opacity="0.15" stroke="#475569" stroke-width="1" stroke-dasharray="2,2">
+      <line x1="80" y1="20" x2="80" y2="120" />
+      <line x1="25" y1="85" x2="135" y2="55" />
+      <line x1="25" y1="55" x2="135" y2="85" />
+    </g>
+
+    <!-- The 3D Cube (Constructed Progress Block) -->
+    <g filter="url(#softShadow)">
+      <!-- Left Face -->
+      <polygon points="80,50 35,72 35,102 80,82" fill="url(#cubeLeftGrad)" />
+      <!-- Right Face -->
+      <polygon points="80,50 125,72 125,102 80,82" fill="url(#cubeRightGrad)" />
+      <!-- Top Face -->
+      <polygon points="80,50 125,72 80,94 35,72" fill="url(#cubeTopGrad)" />
+    </g>
+
+    <!-- Scanning Slice / Laser Beam (Computer Vision Alignment) -->
+    <!-- This represents the exact slice of reality being compared with the BIM model -->
+    <polygon points="30,76 130,51 130,55 30,80" fill="url(#glowGrad)" opacity="0.8" />
+    <line x1="28" y1="76" x2="132" y2="50" stroke="url(#accentGrad)" stroke-width="2.5" filter="url(#neonGlow)" stroke-linecap="round" />
+
+    <!-- Active Floating Node (Data Point Anchor) -->
+    <circle cx="80" cy="40" r="4" fill="#06b6d4" filter="url(#neonGlow)" />
+    <line x1="80" y1="40" x2="80" y2="50" stroke="#06b6d4" stroke-width="1" stroke-dasharray="1,1" />
+
+    <!-- The Progress Swish / Upward Velocity Arc -->
+    <!-- This dynamic orbital arrow wraps around the cube and shoots forward and up -->
+    <path d="M 25,95 C 20,60 55,25 95,28 C 105,29 115,33 122,39" fill="none" stroke="url(#accentGrad)" stroke-width="4.5" stroke-linecap="round" filter="url(#neonGlow)" />
+    <!-- Arrow Head pointing up/right -->
+    <polygon points="120,32 132,41 118,46" fill="#10b981" filter="url(#neonGlow)" />
+  </g>
+
+  <!-- TYPOGRAPHY / LOGOTYPE (tracprogress.ai) -->
+  <!-- Modern Geometric Layout -->
+  <g transform="translate(165, 0)">
+    <!-- Main Title "tracprogress" -->
+    <text x="0" y="86" font-family="'Inter', system-ui, sans-serif" font-size="44px" font-weight="900" letter-spacing="-1.5px" fill="#0f172a">
+      trac<tspan fill="url(#primaryGrad)">progress</tspan>
+    </text>
+
+    <!-- Subtitle descriptor -->
+    <text x="2" y="112" font-family="'JetBrains Mono', monospace" font-size="11px" font-weight="700" letter-spacing="3.5px" fill="#64748b" transform="scale(1, 0.95)">
+      PHYSICAL REALITY AI ENGINE
+    </text>
+
+    <!-- Futuristic AI Capsule Badge -->
+    <g transform="translate(345, 52)">
+      <!-- Badge pill container -->
+      <rect x="0" y="0" width="56" height="28" rx="8" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1.5" />
+      <!-- Glow effect inside pill -->
+      <rect x="1" y="1" width="54" height="26" rx="7" fill="none" stroke="#6366f1" stroke-width="1" opacity="0.3" filter="url(#neonGlow)" />
+      <!-- Label ".ai" -->
+      <text x="28" y="18" font-family="'JetBrains Mono', monospace" font-size="14px" font-weight="800" text-anchor="middle" fill="#4f46e5" letter-spacing="-0.5px">
+        .AI
+      </text>
+    </g>
+
+    <!-- Delicate status light decoration -->
+    <circle cx="410" cy="66" r="3" fill="#10b981" filter="url(#neonGlow)" />
+  </g>
+</svg>

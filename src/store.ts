@@ -39,7 +39,12 @@ export type TabType =
   | "model-registry"
   | "experiment-tracker"
   | "ai-evaluation"
-  | "tracprogress-ai-parity";
+  | "tracprogress-ai-parity"
+  | "hardhat-360-slam"
+  | "trade-micro-stage"
+  | "trade-detection-matrix"
+  | "primavera-schedule-integration"
+  | "subcontractor-velocity-scorecards";
 
 interface AppState {
   // Navigation & Layout

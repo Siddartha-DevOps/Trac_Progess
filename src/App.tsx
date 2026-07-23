@@ -43,7 +43,12 @@ import ModelRegistry from "./components/ModelRegistry";
 import ExperimentTracker from "./components/ExperimentTracker";
 import AIEvaluationDashboard from "./components/AIEvaluationDashboard";
 import TracProgressAIParity from "./components/TracProgressAIParity";
-import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare } from "lucide-react";
+import Hardhat360SlamPathing from "./components/Hardhat360SlamPathing";
+import GranularTradeMicroStageEngine from "./components/GranularTradeMicroStageEngine";
+import MultiStageTradeDetectionMatrix from "./components/MultiStageTradeDetectionMatrix";
+import PrimaveraScheduleIntegration from "./components/PrimaveraScheduleIntegration";
+import SubcontractorVelocityScorecard from "./components/SubcontractorVelocityScorecard";
+import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare, Footprints, Wrench, Award } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
@@ -520,6 +525,101 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>Benchmark Parity</span>
                       <span className="bg-amber-500/20 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-500/30">VS</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("hardhat-360-slam")}
+                  aria-current={activeTab === "hardhat-360-slam" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "hardhat-360-slam"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Hardhat 360° SLAM Pathing Inspector"
+                >
+                  <Footprints className={`w-4 h-4 shrink-0 ${activeTab === "hardhat-360-slam" ? "text-white animate-pulse" : "text-indigo-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Hardhat 360° SLAM</span>
+                      <span className="bg-indigo-500/20 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">SLAM</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("trade-micro-stage")}
+                  aria-current={activeTab === "trade-micro-stage" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "trade-micro-stage"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Granular Trade Micro-Stage Progress Engine"
+                >
+                  <Wrench className={`w-4 h-4 shrink-0 ${activeTab === "trade-micro-stage" ? "text-white animate-pulse" : "text-cyan-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Trade Micro-Stage</span>
+                      <span className="bg-cyan-500/20 text-cyan-600 text-[8px] font-bold px-1 py-0.5 rounded border border-cyan-500/30">STAGE</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("trade-detection-matrix")}
+                  aria-current={activeTab === "trade-detection-matrix" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "trade-detection-matrix"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Multi-Stage Sub-Component & Clash Matrix"
+                >
+                  <Layers className={`w-4 h-4 shrink-0 ${activeTab === "trade-detection-matrix" ? "text-white animate-pulse" : "text-indigo-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Sub-Component Matrix</span>
+                      <span className="bg-indigo-500/20 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">CLASH</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("primavera-schedule-integration")}
+                  aria-current={activeTab === "primavera-schedule-integration" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "primavera-schedule-integration"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Primavera P6 & MS Project Schedule Integration"
+                >
+                  <Calendar className={`w-4 h-4 shrink-0 ${activeTab === "primavera-schedule-integration" ? "text-white animate-pulse" : "text-purple-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Primavera P6 Sync</span>
+                      <span className="bg-purple-500/20 text-purple-600 text-[8px] font-bold px-1 py-0.5 rounded border border-purple-500/30">P6</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("subcontractor-velocity-scorecards")}
+                  aria-current={activeTab === "subcontractor-velocity-scorecards" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "subcontractor-velocity-scorecards"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Subcontractor Velocity & NTC Generator"
+                >
+                  <Award className={`w-4 h-4 shrink-0 ${activeTab === "subcontractor-velocity-scorecards" ? "text-white animate-pulse" : "text-amber-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Trade Velocity & NTC</span>
+                      <span className="bg-amber-500/20 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-500/30">NTC</span>
                     </div>
                   )}
                 </button>
@@ -1195,6 +1295,31 @@ export default function App() {
           {/* TAB 3l: tracprogress.ai Parity & Competitor Comparison */}
           {activeTab === "tracprogress-ai-parity" && (
             <TracProgressAIParity />
+          )}
+
+          {/* TAB 3m: Hardhat 360° SLAM Pathing Inspector */}
+          {activeTab === "hardhat-360-slam" && (
+            <Hardhat360SlamPathing />
+          )}
+
+          {/* TAB 3n: Granular Trade Micro-Stage Progress Engine */}
+          {activeTab === "trade-micro-stage" && (
+            <GranularTradeMicroStageEngine />
+          )}
+
+          {/* TAB 3o: Multi-Stage Trade & Sub-Component Detection Matrix */}
+          {activeTab === "trade-detection-matrix" && (
+            <MultiStageTradeDetectionMatrix />
+          )}
+
+          {/* TAB 3p: Primavera P6 & MS Project Schedule Integration */}
+          {activeTab === "primavera-schedule-integration" && (
+            <PrimaveraScheduleIntegration />
+          )}
+
+          {/* TAB 3q: Subcontractor Velocity & Performance Scorecard */}
+          {activeTab === "subcontractor-velocity-scorecards" && (
+            <SubcontractorVelocityScorecard />
           )}
 
           {/* TAB 4: Site Progress Details View */}

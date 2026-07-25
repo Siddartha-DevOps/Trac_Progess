@@ -44,7 +44,17 @@ export type TabType =
   | "trade-micro-stage"
   | "trade-detection-matrix"
   | "primavera-schedule-integration"
-  | "subcontractor-velocity-scorecards";
+  | "subcontractor-velocity-scorecards"
+  | "4d-bim-timelapse"
+  | "commercial-ipc-valuation"
+  | "spatial-defect-heatmap"
+  | "buildots-ai-assistant"
+  | "lookahead-constraint-engine"
+  | "offline-field-inspector"
+  | "delay-root-cause-analytics"
+  | "enterprise-portfolio-command-center"
+  | "digital-signoff-certificates"
+  | "hardhat-camera-fleet-telemetry";
 
 interface AppState {
   // Navigation & Layout

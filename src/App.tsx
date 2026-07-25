@@ -48,7 +48,17 @@ import GranularTradeMicroStageEngine from "./components/GranularTradeMicroStageE
 import MultiStageTradeDetectionMatrix from "./components/MultiStageTradeDetectionMatrix";
 import PrimaveraScheduleIntegration from "./components/PrimaveraScheduleIntegration";
 import SubcontractorVelocityScorecard from "./components/SubcontractorVelocityScorecard";
-import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare, Footprints, Wrench, Award } from "lucide-react";
+import FourDBimTimelapseReality from "./components/FourDBimTimelapseReality";
+import CommercialIpcValuationEngine from "./components/CommercialIpcValuationEngine";
+import SpatialDefectSafetyHeatmap from "./components/SpatialDefectSafetyHeatmap";
+import BuildotsAiAssistant from "./components/BuildotsAiAssistant";
+import AiLookaheadConstraintEngine from "./components/AiLookaheadConstraintEngine";
+import OfflineFieldInspector from "./components/OfflineFieldInspector";
+import DelayRootCauseAnalytics from "./components/DelayRootCauseAnalytics";
+import EnterprisePortfolioCommandCenter from "./components/EnterprisePortfolioCommandCenter";
+import DigitalSignoffCertificates from "./components/DigitalSignoffCertificates";
+import HardhatCameraFleetTelemetry from "./components/HardhatCameraFleetTelemetry";
+import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare, Footprints, Wrench, Award, Split, DollarSign, Flame, Bot, Smartphone, PieChart as PieChartIcon, Globe, FileCheck, Zap } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
@@ -620,6 +630,196 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>Trade Velocity & NTC</span>
                       <span className="bg-amber-500/20 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-500/30">NTC</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("4d-bim-timelapse")}
+                  aria-current={activeTab === "4d-bim-timelapse" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "4d-bim-timelapse"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="4D BIM Time-Lapse & Reality Split Comparison"
+                >
+                  <Split className={`w-4 h-4 shrink-0 ${activeTab === "4d-bim-timelapse" ? "text-white animate-pulse" : "text-indigo-400"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>4D BIM Time-Lapse</span>
+                      <span className="bg-indigo-500/20 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">4D</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("commercial-ipc-valuation")}
+                  aria-current={activeTab === "commercial-ipc-valuation" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "commercial-ipc-valuation"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Commercial AI Valuation & Progress Billing (IPC Engine)"
+                >
+                  <DollarSign className={`w-4 h-4 shrink-0 ${activeTab === "commercial-ipc-valuation" ? "text-white animate-pulse" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Commercial IPC Billing</span>
+                      <span className="bg-emerald-500/20 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">IPC</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("spatial-defect-heatmap")}
+                  aria-current={activeTab === "spatial-defect-heatmap" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "spatial-defect-heatmap"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Spatial Defect & Safety Hazard Heatmap"
+                >
+                  <Flame className={`w-4 h-4 shrink-0 ${activeTab === "spatial-defect-heatmap" ? "text-white animate-pulse" : "text-rose-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Defect & Safety Heatmap</span>
+                      <span className="bg-rose-500/20 text-rose-600 text-[8px] font-bold px-1 py-0.5 rounded border border-rose-500/30">HEAT</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("buildots-ai-assistant")}
+                  aria-current={activeTab === "buildots-ai-assistant" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "buildots-ai-assistant"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Buildots AI Natural Language Site Assistant"
+                >
+                  <Bot className={`w-4 h-4 shrink-0 ${activeTab === "buildots-ai-assistant" ? "text-white animate-pulse" : "text-indigo-600"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Buildots AI Assistant</span>
+                      <span className="bg-indigo-500/20 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">AI</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("lookahead-constraint-engine")}
+                  aria-current={activeTab === "lookahead-constraint-engine" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "lookahead-constraint-engine"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="3-6 Wk AI Lookahead & Constraint Clearance Engine"
+                >
+                  <Calendar className={`w-4 h-4 shrink-0 ${activeTab === "lookahead-constraint-engine" ? "text-white animate-pulse" : "text-amber-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>AI Lookahead Planner</span>
+                      <span className="bg-amber-500/20 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-500/30">PLAN</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("offline-field-inspector")}
+                  aria-current={activeTab === "offline-field-inspector" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "offline-field-inspector"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Offline Mobile Field Inspector & Voice Sign-off App"
+                >
+                  <Smartphone className={`w-4 h-4 shrink-0 ${activeTab === "offline-field-inspector" ? "text-white animate-pulse" : "text-cyan-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Mobile Field Inspector</span>
+                      <span className="bg-cyan-500/20 text-cyan-600 text-[8px] font-bold px-1 py-0.5 rounded border border-cyan-500/30">VOICE</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("delay-root-cause-analytics")}
+                  aria-current={activeTab === "delay-root-cause-analytics" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "delay-root-cause-analytics"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Delay Cause Breakdown & Executive Root-Cause Analytics"
+                >
+                  <PieChartIcon className={`w-4 h-4 shrink-0 ${activeTab === "delay-root-cause-analytics" ? "text-white animate-pulse" : "text-rose-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Delay Root-Cause Analytics</span>
+                      <span className="bg-rose-500/20 text-rose-600 text-[8px] font-bold px-1 py-0.5 rounded border border-rose-500/30">ROOT</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("enterprise-portfolio-command-center")}
+                  aria-current={activeTab === "enterprise-portfolio-command-center" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "enterprise-portfolio-command-center"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Multi-Project Enterprise Portfolio Command Center"
+                >
+                  <Globe className={`w-4 h-4 shrink-0 ${activeTab === "enterprise-portfolio-command-center" ? "text-white animate-pulse" : "text-indigo-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Enterprise Portfolio Hub</span>
+                      <span className="bg-indigo-500/20 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">PORTFOLIO</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("digital-signoff-certificates")}
+                  aria-current={activeTab === "digital-signoff-certificates" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "digital-signoff-certificates"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Digital Sign-off Certificates & Structural Audit Export"
+                >
+                  <FileCheck className={`w-4 h-4 shrink-0 ${activeTab === "digital-signoff-certificates" ? "text-white animate-pulse" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Digital Certificates</span>
+                      <span className="bg-emerald-500/20 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">CERT</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("hardhat-camera-fleet-telemetry")}
+                  aria-current={activeTab === "hardhat-camera-fleet-telemetry" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "hardhat-camera-fleet-telemetry"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Hardhat Camera Fleet Telemetry & Battery IoT Manager"
+                >
+                  <Zap className={`w-4 h-4 shrink-0 ${activeTab === "hardhat-camera-fleet-telemetry" ? "text-white animate-pulse" : "text-cyan-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Hardhat Fleet Telemetry</span>
+                      <span className="bg-cyan-500/20 text-cyan-600 text-[8px] font-bold px-1 py-0.5 rounded border border-cyan-500/30">IoT FLEET</span>
                     </div>
                   )}
                 </button>
@@ -1320,6 +1520,56 @@ export default function App() {
           {/* TAB 3q: Subcontractor Velocity & Performance Scorecard */}
           {activeTab === "subcontractor-velocity-scorecards" && (
             <SubcontractorVelocityScorecard />
+          )}
+
+          {/* TAB 3r: 4D BIM Time-Lapse & Reality Split Comparison */}
+          {activeTab === "4d-bim-timelapse" && (
+            <FourDBimTimelapseReality />
+          )}
+
+          {/* TAB 3s: Commercial AI Valuation & Progress Billing (IPC Engine) */}
+          {activeTab === "commercial-ipc-valuation" && (
+            <CommercialIpcValuationEngine />
+          )}
+
+          {/* TAB 3t: Spatial Defect & Safety Hazard Heatmap */}
+          {activeTab === "spatial-defect-heatmap" && (
+            <SpatialDefectSafetyHeatmap />
+          )}
+
+          {/* TAB 3u: Buildots AI Natural Language Site Assistant */}
+          {activeTab === "buildots-ai-assistant" && (
+            <BuildotsAiAssistant />
+          )}
+
+          {/* TAB 3v: AI Lookahead Planner & Constraint Resolution Engine */}
+          {activeTab === "lookahead-constraint-engine" && (
+            <AiLookaheadConstraintEngine />
+          )}
+
+          {/* TAB 3w: Offline Mobile Field Inspector & Voice Sign-off App */}
+          {activeTab === "offline-field-inspector" && (
+            <OfflineFieldInspector />
+          )}
+
+          {/* TAB 3x: Delay Cause Breakdown & Executive Root-Cause Analytics */}
+          {activeTab === "delay-root-cause-analytics" && (
+            <DelayRootCauseAnalytics />
+          )}
+
+          {/* TAB 3y: Multi-Project Enterprise Portfolio Command Center */}
+          {activeTab === "enterprise-portfolio-command-center" && (
+            <EnterprisePortfolioCommandCenter />
+          )}
+
+          {/* TAB 3z: Digital Sign-off Certificates & Structural Audit Export */}
+          {activeTab === "digital-signoff-certificates" && (
+            <DigitalSignoffCertificates />
+          )}
+
+          {/* TAB 3aa: Hardhat Camera Fleet Telemetry & Battery IoT Manager */}
+          {activeTab === "hardhat-camera-fleet-telemetry" && (
+            <HardhatCameraFleetTelemetry />
           )}
 
           {/* TAB 4: Site Progress Details View */}

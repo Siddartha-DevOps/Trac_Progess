@@ -54,7 +54,12 @@ export type TabType =
   | "delay-root-cause-analytics"
   | "enterprise-portfolio-command-center"
   | "digital-signoff-certificates"
-  | "hardhat-camera-fleet-telemetry";
+  | "hardhat-camera-fleet-telemetry"
+  | "ai-training-infrastructure"
+  | "video-processing-engine"
+  | "ai-services-suite"
+  | "comprehensive-analytics"
+  | "enterprise-integrations";
 
 interface AppState {
   // Navigation & Layout

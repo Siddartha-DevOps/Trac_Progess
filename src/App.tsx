@@ -58,7 +58,12 @@ import DelayRootCauseAnalytics from "./components/DelayRootCauseAnalytics";
 import EnterprisePortfolioCommandCenter from "./components/EnterprisePortfolioCommandCenter";
 import DigitalSignoffCertificates from "./components/DigitalSignoffCertificates";
 import HardhatCameraFleetTelemetry from "./components/HardhatCameraFleetTelemetry";
-import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare, Footprints, Wrench, Award, Split, DollarSign, Flame, Bot, Smartphone, PieChart as PieChartIcon, Globe, FileCheck, Zap } from "lucide-react";
+import { AITrainingInfrastructure } from "./components/AITrainingInfrastructure";
+import { VideoProcessingEngine } from "./components/VideoProcessingEngine";
+import { AIServicesSuite } from "./components/AIServicesSuite";
+import { ComprehensiveAnalyticsDashboard } from "./components/ComprehensiveAnalyticsDashboard";
+import { EnterpriseIntegrationsHub } from "./components/EnterpriseIntegrationsHub";
+import { Camera, Brain, Sparkles as SparkleIcon, TrendingUp, Gauge, GitCompare, Footprints, Wrench, Award, Split, DollarSign, Flame, Bot, Smartphone, PieChart as PieChartIcon, Globe, FileCheck, Zap, Video as VideoIcon } from "lucide-react";
 
 import { BIMElement, Anomaly } from "./types";
 import { useAppStore, TabType } from "./store";
@@ -516,6 +521,101 @@ export default function App() {
                     <div className="flex-1 flex justify-between items-center">
                       <span>Evaluation Suite</span>
                       <span className="bg-emerald-500/20 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">EVAL</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("ai-training-infrastructure")}
+                  aria-current={activeTab === "ai-training-infrastructure" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "ai-training-infrastructure"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="AI Training Hardware Fleet & Runtimes"
+                >
+                  <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "ai-training-infrastructure" ? "text-white animate-pulse" : "text-amber-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>AI Hardware & Runtimes</span>
+                      <span className="bg-amber-500/20 text-amber-600 text-[8px] font-bold px-1 py-0.5 rounded border border-amber-500/30">H100/TRT</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("video-processing-engine")}
+                  aria-current={activeTab === "video-processing-engine" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "video-processing-engine"
+                      ? "bg-indigo-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Video Processing Pipeline (FFmpeg, OpenCV, GStreamer)"
+                >
+                  <VideoIcon className={`w-4 h-4 shrink-0 ${activeTab === "video-processing-engine" ? "text-white animate-pulse" : "text-indigo-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Video Pipeline</span>
+                      <span className="bg-indigo-500/20 text-indigo-600 text-[8px] font-bold px-1 py-0.5 rounded border border-indigo-500/30">FFmpeg</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("comprehensive-analytics")}
+                  aria-current={activeTab === "comprehensive-analytics" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "comprehensive-analytics"
+                      ? "bg-emerald-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Analytics: Progress %, Delay %, Productivity, Safety, Trades, EVM, Forecasts"
+                >
+                  <TrendingUp className={`w-4 h-4 shrink-0 ${activeTab === "comprehensive-analytics" ? "text-white animate-pulse" : "text-emerald-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Analytics</span>
+                      <span className="bg-emerald-500/20 text-emerald-600 text-[8px] font-bold px-1 py-0.5 rounded border border-emerald-500/30">EVM+KPIs</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("enterprise-integrations")}
+                  aria-current={activeTab === "enterprise-integrations" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "enterprise-integrations"
+                      ? "bg-blue-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Integrations: Primavera P6, MS Project, ACC, BIM 360, Revit, Navisworks"
+                >
+                  <Cpu className={`w-4 h-4 shrink-0 ${activeTab === "enterprise-integrations" ? "text-white animate-pulse" : "text-blue-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>Integrations</span>
+                      <span className="bg-blue-500/20 text-blue-600 text-[8px] font-bold px-1 py-0.5 rounded border border-blue-500/30">6 Active</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("ai-services-suite")}
+                  aria-current={activeTab === "ai-services-suite" ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-all ${
+                    activeTab === "ai-services-suite"
+                      ? "bg-purple-600 text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  title="Multi-Modal AI Services (OCR, Speech-to-Text, LLM Reports, RAG, Assistant)"
+                >
+                  <Brain className={`w-4 h-4 shrink-0 ${activeTab === "ai-services-suite" ? "text-white animate-pulse" : "text-purple-500"}`} />
+                  {isSidebarExpanded && (
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>AI Services</span>
+                      <span className="bg-purple-500/20 text-purple-600 text-[8px] font-bold px-1 py-0.5 rounded border border-purple-500/30">OCR+STT</span>
                     </div>
                   )}
                 </button>
@@ -1570,6 +1670,31 @@ export default function App() {
           {/* TAB 3aa: Hardhat Camera Fleet Telemetry & Battery IoT Manager */}
           {activeTab === "hardhat-camera-fleet-telemetry" && (
             <HardhatCameraFleetTelemetry />
+          )}
+
+          {/* TAB 3ab: AI Training Infrastructure & GPU Fleet (A100/H100/L40S/4090, PyTorch, CUDA, cuDNN, TensorRT, ONNX) */}
+          {activeTab === "ai-training-infrastructure" && (
+            <AITrainingInfrastructure />
+          )}
+
+          {/* TAB 3ac: Video Processing Engine (FFmpeg, OpenCV, GStreamer, Sync Uploads) */}
+          {activeTab === "video-processing-engine" && (
+            <VideoProcessingEngine />
+          )}
+
+          {/* TAB 3ae: Executive Analytics Dashboard (Progress %, Delay %, Productivity, Safety, Trades, EVM, Schedule Forecasts) */}
+          {activeTab === "comprehensive-analytics" && (
+            <ComprehensiveAnalyticsDashboard />
+          )}
+
+          {/* TAB 3af: Enterprise Integrations Hub (Primavera P6, MS Project, ACC, BIM 360, Revit, Navisworks) */}
+          {activeTab === "enterprise-integrations" && (
+            <EnterpriseIntegrationsHub />
+          )}
+
+          {/* TAB 3ad: AI Services Suite (OCR, Speech-to-Text, LLM Reporting, RAG, Assistant) */}
+          {activeTab === "ai-services-suite" && (
+            <AIServicesSuite />
           )}
 
           {/* TAB 4: Site Progress Details View */}

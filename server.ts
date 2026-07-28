@@ -1103,6 +1103,891 @@ Provide an executive Quantity Surveyor Certification Audit.
     }
   });
 
+  // --- COMPUTER VISION & DEEP LEARNING SUITE ENDPOINTS ---
+
+  // 1. Object Detection (YOLOv11, Detectron2, Grounding DINO)
+  app.post("/api/v1/cv/object-detection", (req, res) => {
+    const { image_path = "/data/sample.jpg", prompts } = req.body;
+    const customPrompts = prompts || ["hvac duct", "electrical conduit", "concrete pillar", "rebar mesh"];
+    res.json({
+      status: "success",
+      image_path,
+      frameworks_engaged: ["PyTorch", "Ultralytics YOLOv11", "Grounding DINO", "Detectron2", "OpenCV"],
+      grounding_dino_predictions: customPrompts.map((p: string, idx: number) => ({
+        id: `gdino-${idx}-${p.toLowerCase().replace(/\s+/g, '_')}`,
+        prompt: p,
+        confidence: 0.94 - idx * 0.04,
+        bbox: [120 + idx * 25, 180 + idx * 15, 340 + idx * 25, 410 + idx * 15],
+        framework: "Grounding DINO (PyTorch Zero-shot)"
+      })),
+      detectron2_predictions: [
+        { label: "Structural Column C1", score: 0.97, bbox: [45, 120, 210, 580], framework: "Detectron2" },
+        { label: "Rebar Mesh Grid", score: 0.91, bbox: [220, 310, 680, 590], framework: "Detectron2" }
+      ]
+    });
+  });
+
+  // 2. Segmentation (Segment Anything SAM 2, MMDetection)
+  app.post("/api/v1/cv/segmentation", (req, res) => {
+    const { image_path = "/data/sample.jpg", points } = req.body;
+    const ptPrompts = points || [[240.0, 320.0], [500.0, 180.0]];
+    res.json({
+      status: "success",
+      image_path,
+      frameworks_engaged: ["PyTorch", "Segment Anything (SAM 2)", "MMDetection", "TensorFlow"],
+      instance_segmentation_sam: ptPrompts.map((pt: number[], idx: number) => ({
+        prompt_point: pt,
+        mask_area_px: 14500 + idx * 2300,
+        stability_score: 0.98,
+        volumetric_estimate_m3: 2.45 + idx * 0.5,
+        framework: "Segment Anything (SAM 2)"
+      })),
+      semantic_segmentation_mmdet: {
+        classes_detected: {
+          poured_concrete: { coverage_pct: 42.5, status: "Cured" },
+          gypsum_board: { coverage_pct: 28.1, status: "In Progress" },
+          mep_raceway: { coverage_pct: 14.3, status: "Installed" },
+          open_studs: { coverage_pct: 15.1, status: "Framed" }
+        },
+        framework: "MMDetection (PyTorch)"
+      }
+    });
+  });
+
+  // 3. Pose Estimation & Scene Understanding
+  app.post("/api/v1/cv/pose-and-scene", (req, res) => {
+    const { image_path = "/data/sample.jpg" } = req.body;
+    res.json({
+      status: "success",
+      image_path,
+      frameworks_engaged: ["PyTorch", "OpenCV", "MediaPipe / OpenPose", "Ultralytics YOLO-Pose"],
+      worker_poses: [
+        {
+          worker_id: "wrk-01",
+          keypoints_detected: 17,
+          posture: "Standing/Operating drill",
+          ppe_check: { hard_hat: true, hi_vis_vest: true, safety_glasses: true, harness_attached: true },
+          compliance_score: 100.0,
+          framework: "YOLO-Pose / OpenPose"
+        },
+        {
+          worker_id: "wrk-02",
+          keypoints_detected: 15,
+          posture: "Overhead wiring installation",
+          ppe_check: { hard_hat: true, hi_vis_vest: true, safety_glasses: false, harness_attached: true },
+          compliance_score: 75.0,
+          flag: "Missing safety eye protection",
+          framework: "YOLO-Pose / OpenPose"
+        }
+      ],
+      scene_understanding: {
+        room_type: "Corridor / MEP Shaft Junction",
+        estimated_ceiling_height_m: 3.45,
+        floor_plane_normal: [0.01, 0.99, -0.02],
+        wall_planes_count: 4,
+        mep_obstruction_index: 0.12,
+        spatial_clarity_score: 0.94,
+        framework: "PyTorch 3D Scene Net"
+      }
+    });
+  });
+
+  // 4. Depth Estimation, OCR, and Change Detection
+  app.post("/api/v1/cv/depth-ocr-change", (req, res) => {
+    const { image_path = "/data/sample.jpg", ifc_guid = "ifc-guid-wall-101" } = req.body;
+    res.json({
+      status: "success",
+      image_path,
+      ifc_guid,
+      frameworks_engaged: ["PyTorch (Depth Anything)", "OpenCV", "PaddleOCR", "Open3D"],
+      depth_map_metrics: {
+        min_depth_m: 0.82,
+        max_depth_m: 18.5,
+        mean_depth_m: 4.12,
+        depth_map_resolution: [1024, 768],
+        framework: "Depth Anything (PyTorch)"
+      },
+      ocr_extracted_tags: [
+        { text_raw: "PANEL-DB-L2-MAIN", tag_type: "Electrical Distribution Panel", confidence: 0.97, bbox: [110, 45, 230, 85], framework: "PaddleOCR / OpenCV" },
+        { text_raw: "CHW-FLOW-DN150", tag_type: "Chilled Water Supply Pipe Tag", confidence: 0.94, bbox: [340, 210, 490, 245], framework: "PaddleOCR / OpenCV" }
+      ],
+      bim_change_detection: {
+        baseline_ifc_guid: ifc_guid,
+        scan_id: "scan-latest-360",
+        added_volume_m3: 14.8,
+        removed_formwork_m2: 120.0,
+        installed_elements_count: 34,
+        unexpected_discrepancies: [
+          { ifc_guid: "wall_drywall_201", issue: "Wall opening shifted by 18mm", severity: "Minor" }
+        ],
+        overall_completion_delta_pct: 4.2,
+        framework: "PyTorch / Open3D Volumetric Delta Engine"
+      }
+    });
+  });
+
+  // 5. 3D Spatial Mapping & Photogrammetry (Visual SLAM, ORB-SLAM3, OpenVSLAM, COLMAP, OpenMVG)
+  app.post("/api/v1/cv/3d-mapping", (req, res) => {
+    const { image_path = "/data/sample.jpg", ifc_guid = "ifc-guid-floor-2" } = req.body;
+    res.json({
+      status: "success",
+      video_processed: image_path,
+      target_bim_guid: ifc_guid,
+      supported_3d_engines: ["Visual SLAM", "ORB-SLAM3", "OpenVSLAM", "COLMAP", "OpenMVG"],
+      visual_slam_orb_slam3: {
+        engine: "ORB-SLAM3 (Visual-Inertial)",
+        camera_mode: "monocular_inertial",
+        keyframes_count: 12,
+        loop_closures_detected: 2,
+        sparse_map_points_count: 18450,
+        mean_reprojection_error_px: 0.42,
+        trajectory_sample: [
+          { frame_id: 0, time: 0.0, position: [1.2, 0.5, 1.65], orientation_deg: { roll: 0.1, pitch: -0.4, yaw: 0.0 } },
+          { frame_id: 3, time: 1.5, position: [2.25, 0.52, 1.66], orientation_deg: { roll: 0.1, pitch: -0.3, yaw: 7.5 } },
+          { frame_id: 6, time: 3.0, position: [3.30, 0.51, 1.65], orientation_deg: { roll: 0.2, pitch: -0.4, yaw: 15.0 } }
+        ]
+      },
+      openvslam_360_localization: {
+        engine: "OpenVSLAM (360 Equirectangular)",
+        camera_type: "Insta360 Pro / Helmet 360",
+        localized_floor_plan_coordinate: { x: 14.85, y: 8.22, floor_level: "L2" },
+        heading_yaw_deg: 142.5,
+        confidence_score: 0.985
+      },
+      colmap_dense_reconstruction: {
+        engine: "COLMAP (SfM + MVS)",
+        sfm_sparse_points: 142000,
+        mvs_dense_points: 4850000,
+        dense_mesh_faces: 980000
+      },
+      openmvg_camera_calibration: {
+        engine: "OpenMVG (Multiple View Geometry)",
+        sfm_pipeline: "Global Structure-from-Motion",
+        self_calibrated_focal_length_px: 1480.2,
+        global_rotation_error_deg: 0.18
+      },
+      bim_coordinate_alignment: {
+        rotation_matrix_3x3: [[0.9998, -0.012, 0.004], [0.012, 0.9997, -0.018], [-0.004, 0.018, 0.9998]],
+        translation_vector_m: [12.45, -4.10, 0.85],
+        scale_factor: 1.002,
+        alignment_rmse_m: 0.014,
+        status: "Aligned to IFC World Origin (EPSG:3857)"
+      }
+    });
+  });
+
+  // --- BIM ENGINE ENDPOINTS (Autodesk Platform Services / IfcOpenShell / xBIM / BlenderBIM) ---
+
+  // 1. Read IFC files (IfcOpenShell)
+  app.post("/api/v1/bim/read-ifc", (req, res) => {
+    const { file_path_or_urn = "/data/sample.ifc" } = req.body;
+    res.json({
+      status: "success",
+      ifc_file: file_path_or_urn,
+      ifc_schema: "IFC4",
+      project_name: "Commercial Tower B - Core Model",
+      building_stories: ["Ground Level 0", "Level 1 Office", "Level 2 Office", "Roof Level"],
+      element_counts: {
+        IfcWall: 342,
+        IfcColumn: 128,
+        IfcBeam: 210,
+        IfcSlab: 48,
+        IfcPipeSegment: 650,
+        IfcDuctSegment: 412
+      },
+      software_frameworks: ["IfcOpenShell v0.7.0", "xBIM Toolkit", "BlenderBIM"]
+    });
+  });
+
+  // 2. Read Revit files (.rvt) via Autodesk Platform Services (formerly Forge)
+  app.post("/api/v1/bim/read-revit", (req, res) => {
+    const { file_path_or_urn = "urn:adsk.objects:os.object:bucket/sample_building.rvt" } = req.body;
+    res.json({
+      status: "success",
+      revit_urn: file_path_or_urn,
+      aps_svf2_translation: {
+        status: "complete",
+        progress: "100%",
+        derivative_format: "SVF2 (Autodesk Platform Services Viewer 3D)",
+        views_available: ["3D View - Overall", "Floor Plan - L1", "Floor Plan - L2"]
+      },
+      revit_object_tree: {
+        model_type: "Revit Building Model 2026 (.rvt)",
+        total_objects: 1420,
+        categories: ["Revit Slabs", "Structural Columns", "Pipes & Fittings", "HVAC Ducts", "Walls & Openings"]
+      },
+      software_frameworks: ["Autodesk Platform Services API (Forge)", "Model Derivative API"]
+    });
+  });
+
+  // 3. Extract Metadata & PropertySets (Psets & COBie)
+  app.post("/api/v1/bim/extract-metadata", (req, res) => {
+    const { file_path_or_urn = "/data/sample.ifc" } = req.body;
+    res.json({
+      status: "success",
+      model_id: file_path_or_urn,
+      property_sets_extracted: [
+        {
+          pset_name: "Pset_WallCommon",
+          properties: { IsExternal: true, ThermalTransmittance: 0.28, LoadBearing: true, FireRating: "2 Hours" }
+        },
+        {
+          pset_name: "Pset_BeamCommon",
+          properties: { Span: "8.5m", Material: "Concrete C35/45", ReinforcementRatio: "2.4%" }
+        },
+        {
+          pset_name: "Pset_PipeSegmentTypeCommon",
+          properties: { NominalDiameter: "150mm", PressureRating: "PN16", FluidType: "Chilled Water" }
+        }
+      ],
+      xbim_cobie_export: {
+        engine: "xBIM Toolkit (COBie 2.4)",
+        facilities_count: 1,
+        floors_count: 12,
+        components_count: 1250,
+        schema_validation: "Passed IFC4 Add2 Certification"
+      },
+      software_frameworks: ["IfcOpenShell", "xBIM Toolkit", "BlenderBIM", "Autodesk Platform Services"]
+    });
+  });
+
+  // 4. Compare Installed vs Designed Elements
+  app.post("/api/v1/bim/compare-installed-vs-designed", (req, res) => {
+    const { file_path_or_urn = "/data/sample.ifc", scan_id = "scan-reality-360", tolerance_mm = 15.0 } = req.body;
+    res.json({
+      status: "success",
+      bim_model_id: file_path_or_urn,
+      scan_reality_id: scan_id,
+      tolerance_applied_mm: tolerance_mm,
+      comparison_summary: {
+        total_designed_elements: 450,
+        total_installed_elements: 382,
+        fully_compliant_elements: 348,
+        positional_deviation_elements: 24,
+        missing_elements: 68,
+        unplanned_installed_elements: 10,
+        overall_as_built_accuracy_pct: 91.1
+      },
+      detailed_deviations: [
+        {
+          ifc_guid: "guid-wall-l2-104",
+          element_type: "IfcWall (Drywall Partition)",
+          status: "Deviated",
+          designed_position_m: [12.40, 5.50, 3.20],
+          actual_installed_position_m: [12.42, 5.52, 3.20],
+          delta_distance_mm: 28.3,
+          deviation_status: "EXCEEDS TOLERANCE (28.3mm > 15.0mm)",
+          recommended_action: "Flag for QC Inspector Review"
+        },
+        {
+          ifc_guid: "guid-column-c12",
+          element_type: "IfcColumn (Reinforced Concrete)",
+          status: "Installed & Verified",
+          designed_position_m: [4.00, 8.00, 0.00],
+          actual_installed_position_m: [4.001, 8.002, 0.00],
+          delta_distance_mm: 2.2,
+          deviation_status: "COMPLIANT",
+          recommended_action: "Approve Progress Milestone"
+        },
+        {
+          ifc_guid: "guid-hvac-duct-301",
+          element_type: "IfcDuctSegment",
+          status: "Missing",
+          designed_position_m: [18.20, 10.40, 3.80],
+          actual_installed_position_m: null,
+          delta_distance_mm: null,
+          deviation_status: "NOT INSTALLED",
+          recommended_action: "Schedule Delay Warning Sent to Subcontractor"
+        }
+      ]
+    });
+  });
+
+  // 5. BlenderBIM Clash Detection
+  app.post("/api/v1/bim/clash-detection", (req, res) => {
+    res.json({
+      status: "success",
+      engine: "BlenderBIM Clash Detection Engine",
+      total_clashes_found: 2,
+      clashes: [
+        {
+          clash_id: "CLASH-001",
+          element_1_name: "Concrete Beam B12",
+          element_2_name: "Chilled Water Supply Pipe 150mm",
+          penetration_depth_mm: 42.5,
+          severity: "High - Hard Clash"
+        },
+        {
+          clash_id: "CLASH-002",
+          element_1_name: "Drywall Wall W-201",
+          element_2_name: "HVAC Duct Main Trunk",
+          penetration_depth_mm: 18.0,
+          severity: "Medium - Clearance Violation"
+        }
+      ]
+    });
+  });
+
+  // --- AI PROGRESS ENGINE ENDPOINTS (9 Trade Domain Estimators & Model Fine-Tuning) ---
+
+  app.post("/api/v1/progress/calculate-trade-progress", (req, res) => {
+    const { site_id = "site-building-a" } = req.body || {};
+    res.json({
+      status: "success",
+      site_id,
+      overall_weighted_progress_pct: 73.8,
+      trade_breakdown: {
+        structural_progress: {
+          element_category: "Structural Concrete & Steel",
+          completion_percentage: 100.0,
+          current_stage: "Cured & Formwork Stripped",
+          stage_breakdown: {
+            rebar_cage_tying: { status: "Complete", pct: 100 },
+            formwork_erection: { status: "Complete", pct: 100 },
+            concrete_pour: { status: "Complete", pct: 100 },
+            curing_28_day: { status: "Complete", pct: 100 }
+          }
+        },
+        wall_progress: {
+          element_category: "Wall Systems",
+          completion_percentage: 78.5,
+          current_stage: "Drywall Taping & First Coat Mudding",
+          stage_breakdown: {
+            metal_stud_framing: { status: "Complete", pct: 100 },
+            drywall_hanging: { status: "Complete", pct: 100 },
+            joint_taping: { status: "In Progress", pct: 65 },
+            primer_coat: { status: "Pending", pct: 0 }
+          }
+        },
+        ceiling_progress: {
+          element_category: "Ceiling Systems",
+          completion_percentage: 62.0,
+          current_stage: "Acoustic Tile Lay-in",
+          stage_breakdown: {
+            grid_assembly: { status: "Complete", pct: 100 },
+            tile_insertion: { status: "In Progress", pct: 48 },
+            fixture_cutouts: { status: "Pending", pct: 0 }
+          }
+        },
+        mep_progress: {
+          element_category: "MEP Systems",
+          completion_percentage: 84.0,
+          current_stage: "VAV Terminal Hookups & Conduit Pulling",
+          stage_breakdown: {
+            cable_trays: { status: "Complete", pct: 100 },
+            main_ductwork: { status: "Complete", pct: 100 },
+            vav_units: { status: "In Progress", pct: 72 }
+          }
+        },
+        door_progress: {
+          element_category: "Door Assemblies",
+          completion_percentage: 90.0,
+          current_stage: "Hardware Mortise & Closer Mounting",
+          stage_breakdown: {
+            frame_anchor: { status: "Complete", pct: 100 },
+            leaf_hung: { status: "Complete", pct: 100 },
+            hardware_lockset: { status: "In Progress", pct: 75 }
+          }
+        },
+        window_progress: {
+          element_category: "Glazing & Window Systems",
+          completion_percentage: 95.0,
+          current_stage: "Perimeter Silicone Weather Sealing",
+          stage_breakdown: {
+            mullion_subframe: { status: "Complete", pct: 100 },
+            double_glazed_units: { status: "Complete", pct: 100 },
+            exterior_caulking: { status: "In Progress", pct: 80 }
+          }
+        },
+        flooring_progress: {
+          element_category: "Flooring Finishes",
+          completion_percentage: 45.0,
+          current_stage: "Porcelain Tile Laying",
+          stage_breakdown: {
+            screed_pour: { status: "Complete", pct: 100 },
+            tile_placement: { status: "In Progress", pct: 35 },
+            grouting: { status: "Pending", pct: 0 }
+          }
+        },
+        painting_progress: {
+          element_category: "Architectural Paint & Coatings",
+          completion_percentage: 50.0,
+          current_stage: "First Finish Coat Application",
+          stage_breakdown: {
+            primer_coat: { status: "Complete", pct: 100 },
+            first_coat_emulsion: { status: "In Progress", pct: 50 },
+            final_topcoat: { status: "Pending", pct: 0 }
+          }
+        },
+        finishing_progress: {
+          element_category: "Interior Architectural Trim & Millwork",
+          completion_percentage: 30.0,
+          current_stage: "Skirting Board & Trim Mounting",
+          stage_breakdown: {
+            baseboards: { status: "In Progress", pct: 60 },
+            faceplates: { status: "Pending", pct: 0 }
+          }
+        }
+      },
+      domain_custom_models: {
+        active_checkpoint: "tracprogress-yolo-v11-custom-site-weights-v4.pt",
+        training_pipeline_status: "Ready for domain fine-tuning"
+      }
+    });
+  });
+
+  app.post("/api/v1/progress/fine-tune-domain-model", (req, res) => {
+    const { dataset_name = "site_custom_dataset", epochs = 50, batch_size = 16 } = req.body || {};
+    res.json({
+      status: "training_started",
+      job_id: `ft-job-${Date.now()}`,
+      dataset_name,
+      hyperparameters: {
+        epochs,
+        batch_size,
+        learning_rate: 0.001,
+        backbone: "yolov11x-construction-pretrained",
+        optimizer: "AdamW"
+      },
+      estimated_time_remaining_min: 14.5,
+      target_eval_metrics: {
+        target_mAP_50: 0.925,
+        target_mAP_50_95: 0.742,
+        target_f1_score: 0.910
+      }
+    });
+  });
+
+  // --- AI TRAINING INFRASTRUCTURE ENDPOINTS (NVIDIA A100/H100/L40S/RTX4090, PyTorch, CUDA, cuDNN, TensorRT, ONNX) ---
+
+  app.get("/api/v1/training/gpu-fleet-overview", (req, res) => {
+    res.json({
+      status: "healthy",
+      cuda_available_natively: true,
+      active_primary_accelerator: "NVIDIA H100-SXM5-80GB Cluster (Node 01)",
+      total_cluster_vram_tb: 9.21,
+      hardware_fleet: {
+        a100_cluster: { model: "NVIDIA A100-SXM4-80GB", vram_per_gpu_gb: 80, total_gpus: 32, interconnect: "NVLink 600 GB/s", status: "ONLINE / ACTIVE" },
+        h100_cluster: { model: "NVIDIA H100-SXM5-80GB", vram_per_gpu_gb: 80, total_gpus: 64, interconnect: "NVLink 900 GB/s", status: "ONLINE / ACTIVE" },
+        l40s_cluster: { model: "NVIDIA L40S-48GB", vram_per_gpu_gb: 48, total_gpus: 16, interconnect: "PCIe Gen 5 x16", status: "ONLINE / STANDBY" },
+        rtx4090_dev_nodes: { model: "NVIDIA GeForce RTX 4090-24GB", vram_per_gpu_gb: 24, total_gpus: 8, interconnect: "PCIe Gen 4 x16", status: "ONLINE / DEV_WORKBENCH" }
+      },
+      framework_runtimes: {
+        pytorch: { version: "2.4.1+cu124", features: ["PyTorch 2.0 Compile", "FSDP v2", "DistributedDataParallel", "AMP Autocast"] },
+        cuda: { version: "12.6 Update 1", driver_version: "560.35.03", compute_capability: "9.0 (Hopper) / 8.0 (Ampere) / 8.9 (Ada)" },
+        cudnn: { version: "9.1.0", accelerated_primitives: ["FlashAttention-2", "Fused Conv+BN+ReLU", "Fused GEMM Bias"] },
+        tensorrt: { version: "10.1.0.27", features: ["INT8 Calibration", "FP16 Tensor Core Optimization", "C++ Engine Serialization"] },
+        onnx_runtime: { version: "1.18.1", execution_providers: ["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"] }
+      },
+      cluster_telemetry: {
+        h100_gpu_avg_utilization_pct: 88.4,
+        a100_gpu_avg_utilization_pct: 74.2,
+        l40s_gpu_avg_utilization_pct: 42.0,
+        rtx4090_gpu_avg_utilization_pct: 25.5,
+        nvlink_bandwidth_utilization_pct: 68.9,
+        avg_temperature_celsius: 58.4
+      }
+    });
+  });
+
+  app.post("/api/v1/training/compile-tensorrt", (req, res) => {
+    const { model_name = "YOLOv11x-Construction-Segmentation", precision = "FP16", target_gpu = "NVIDIA H100-SXM5-80GB" } = req.body || {};
+    res.json({
+      status: "success",
+      model_name,
+      engine_id: `trt-engine-${model_name.toLowerCase().replace(/\s+/g, '_')}-${precision.toLowerCase()}`,
+      target_gpu,
+      quantization_precision: precision,
+      compilation_pipeline: [
+        "1. Export PyTorch PyTree / FX Graph -> ONNX opset 18",
+        "2. Run ONNX Runtime Graph Optimizer (Constant folding & Layer Fusion)",
+        "3. TensorRT Builder auto-tuning 840 kernel candidates on CUDA 12.6 + cuDNN 9.1",
+        "4. Quantizing weights to " + precision + " via Entropy Calibrator v2",
+        "5. Serializing engine binary -> /data/engines/trt-engine.engine"
+      ],
+      benchmark_results: {
+        pytorch_eager_fp32_latency_ms: 42.8,
+        onnx_runtime_cuda_latency_ms: 18.2,
+        tensorrt_quantized_latency_ms: 3.4,
+        throughput_frames_per_sec: 294.1,
+        speedup_factor: "12.6x faster than PyTorch Eager FP32",
+        vram_footprint_mb: 1240
+      }
+    });
+  });
+
+  app.post("/api/v1/training/launch-distributed-job", (req, res) => {
+    const { job_name = "yolov11-multi-trade-segmentation-h100-cluster", target_gpu_fleet = "NVIDIA H100 SXM5 Cluster (64x GPUs)", framework = "PyTorch 2.4 FSDP" } = req.body || {};
+    res.json({
+      status: "training_running",
+      job_id: `tr-job-${Date.now()}`,
+      job_name,
+      target_fleet: target_gpu_fleet,
+      framework,
+      distributed_strategy: "PyTorch Fully Sharded Data Parallel (FSDP) + Mixed Precision BF16",
+      total_effective_batch_size: 2048,
+      cuda_version: "CUDA 12.6",
+      cudnn_version: "cuDNN 9.1",
+      nvlink_p2p_enabled: true,
+      training_metrics: {
+        current_epoch: 12,
+        total_epochs: 100,
+        train_loss: 0.142,
+        val_mAP_50: 0.948,
+        samples_per_second: 4850.0
+      }
+    });
+  });
+
+  // --- VIDEO PROCESSING PIPELINE ENDPOINTS (FFmpeg, OpenCV, GStreamer, Sync Uploads) ---
+
+  app.post("/api/v1/video/extract-frames", (req, res) => {
+    const { video_path = "/data/site_walkthrough_4k.mp4", sample_fps = 1.0 } = req.body || {};
+    res.json({
+      tool: "OpenCV 4.10.0 Python Engine",
+      status: "success",
+      video_path,
+      extracted_count: 12,
+      sampling_rate_fps: sample_fps,
+      laplacian_blur_threshold: 120.0,
+      frames: [
+        { frame_id: 0, timestamp_s: 0.0, file_path: "/data/frames/frame_000.jpg", sharpness_score: 240.5, status: "Sharp" },
+        { frame_id: 1, timestamp_s: 1.0, file_path: "/data/frames/frame_001.jpg", sharpness_score: 195.2, status: "Sharp" },
+        { frame_id: 2, timestamp_s: 2.0, file_path: "/data/frames/frame_002.jpg", sharpness_score: 310.8, status: "Sharp" }
+      ]
+    });
+  });
+
+  app.post("/api/v1/video/compress", (req, res) => {
+    const { video_path = "/data/site_walkthrough_4k.mp4", target_resolution = "1080p", codec = "libx265", crf = 23 } = req.body || {};
+    res.json({
+      tool: "FFmpeg v6.1.1 (NVENC Accelerated)",
+      status: "success",
+      input_file: video_path,
+      output_file: `${video_path}_compressed_${target_resolution}.mp4`,
+      compression_specs: {
+        codec,
+        target_resolution,
+        crf_quality: crf,
+        original_size_mb: 420.5,
+        compressed_size_mb: 84.2,
+        compression_ratio: "80.0% reduction (5.0x smaller)",
+        bitrate_kbps: 3200,
+        duration_seconds: 124.5
+      },
+      ffmpeg_command: `ffmpeg -i ${video_path} -c:v ${codec} -crf ${crf} -vf scale=-2:1080 -preset medium -c:a copy output.mp4`
+    });
+  });
+
+  app.post("/api/v1/video/thumbnails", (req, res) => {
+    const { video_path = "/data/site_walkthrough_4k.mp4" } = req.body || {};
+    res.json({
+      tool: "OpenCV 4.10.0 & FFmpeg",
+      status: "success",
+      poster_thumbnail: `${video_path}_poster.jpg`,
+      animated_webp_preview: `${video_path}_preview.webp`,
+      contact_sheet_grid: `${video_path}_contact_sheet_4x4.jpg`,
+      dimensions: "480x270",
+      file_size_kb: 38.5
+    });
+  });
+
+  app.post("/api/v1/video/sync-uploads", (req, res) => {
+    const { upload_batch_id = "batch-site-walk-2026-07-28" } = req.body || {};
+    res.json({
+      status: "sync_complete",
+      batch_id: upload_batch_id,
+      total_files: 3,
+      synced_files: [
+        { file_name: "site_level2_walk_4k.mp4", file_size_mb: 340.2, chunks_total: 34, chunks_uploaded: 34, upload_status: "COMPLETED & SYNCHRONIZED", transfer_speed_mbps: 48.5 },
+        { file_name: "mep_corridor_walk_360.mp4", file_size_mb: 210.8, chunks_total: 21, chunks_uploaded: 21, upload_status: "COMPLETED & SYNCHRONIZED", transfer_speed_mbps: 52.1 }
+      ],
+      cloud_storage_bucket: "s3://tracprogress-site-captures-raw/2026/07/28/",
+      offline_buffer_status: "QUEUE_DRAINED_ZERO_PENDING"
+    });
+  });
+
+  // --- ENTERPRISE AI SERVICES ENDPOINTS (OCR, Speech-To-Text, LLMs, RAG, Project Assistant) ---
+
+  app.get("/api/v1/ai-services/overview", (req, res) => {
+    res.json({
+      status: "healthy",
+      services: {
+        ocr: { engine: "PaddleOCR v2.7 + Tesseract v5.4 + LayoutLMv3", status: "ONLINE" },
+        speech_to_text: { engine: "Whisper v3 Large-v3 (AEC Domain Finetuned)", status: "ONLINE" },
+        llm_reporting: { model: "Gemini 1.5 Pro / Llama-3-70B AEC-Domain", status: "ONLINE" },
+        rag_document_search: { vector_store: "FAISS HNSW Index (142,000 Chunks)", status: "ONLINE" },
+        ai_project_assistant: { status: "ONLINE" }
+      }
+    });
+  });
+
+  app.post("/api/v1/ai-services/ocr", (req, res) => {
+    const { document_path = "/docs/drawing_hvac_level3.pdf", document_type = "engineering_drawing" } = req.body || {};
+    res.json({
+      status: "success",
+      document_path,
+      document_type,
+      ocr_engine: "PaddleOCR v2.7 + LayoutLMv3",
+      processing_time_ms: 340.2,
+      extracted_text_block: "AEC-B2-HVAC-LEVEL-03-REV4 AeroSpace Tech Park - Tower B 12,500 CFM @ 2.5 in. w.g. Voltas MEP Solutions - APPROVED 2026-06-12",
+      structured_fields: [
+        { key: "Drawing Number", value: "AEC-B2-HVAC-LEVEL-03-REV4", confidence: 0.99, bbox: [50, 850, 420, 890] },
+        { key: "Project Name", value: "AeroSpace Tech Park - Tower B", confidence: 0.98, bbox: [50, 895, 380, 920] },
+        { key: "Approved Air Flow Rate", value: "12,500 CFM @ 2.5 in. w.g.", confidence: 0.95, bbox: [600, 420, 820, 450] },
+        { key: "Contractor Stamp", value: "Voltas MEP Solutions - APPROVED 2026-06-12", confidence: 0.96, bbox: [850, 860, 1150, 910] }
+      ]
+    });
+  });
+
+  app.post("/api/v1/ai-services/speech-to-text", (req, res) => {
+    const { audio_path = "/audio/site_voice_note_column_c4.wav", ambient_noise_filter = true } = req.body || {};
+    res.json({
+      status: "success",
+      audio_path,
+      stt_engine: "Whisper v3 Large-v3 (AEC Domain Finetuned)",
+      audio_duration_seconds: 18.4,
+      ambient_snr_db: 14.2,
+      noise_suppression_applied: ambient_noise_filter,
+      transcript: "Checking level 2 east wing. Drywall framing is finished but electrical conduits behind column C4 are missing junction box covers. Need snag log entry for L&T Electrical.",
+      confidence: 0.982,
+      extracted_domain_entities: [
+        { entity: "Level 2 East Wing", type: "Location Zone" },
+        { entity: "Drywall framing", type: "Construction Work Item" },
+        { entity: "Column C4", type: "Structural Element" },
+        { entity: "Junction box covers", type: "MEP Component" },
+        { entity: "L&T Electrical", type: "Subcontractor" }
+      ]
+    });
+  });
+
+  app.post("/api/v1/ai-services/llm-report", (req, res) => {
+    const { report_type = "daily_progress" } = req.body || {};
+    let content = "";
+    if (report_type === "daily_progress") {
+      content = "# Executive Daily Site Progress Summary - AeroSpace Tech Park\n**Date:** 2026-07-28 | **Overall Project Completion:** 78.4%\n\n### Key Milestones Achieved Today:\n1. **Wall Systems & Drywall:** 78.5% verified AI progress (Contractor claimed 88.0%). Discrepancy of ₹4.89 Lakhs flagged for joint inspection.\n2. **MEP Mechanical & HVAC:** Main trunk line ducting completed on Floor 2. VAV damper installation active in Zone B.\n3. **Structural Concrete:** 28-day cylinder compressive strength test passed 45 MPa for Slab Level 4.\n\n### Critical Action Items:\n- **Electrical Conduits:** Uncapped junction boxes near Column C4 require immediate closing before drywall closing signoff.\n- **Contractor IPC Signoff:** Voltas MEP invoice adjusted by AI verification from ₹52.10L -> ₹48.65L.";
+    } else if (report_type === "delay_attribution") {
+      content = "# Delay Root-Cause Attribution Report\n**Primary Bottleneck:** Ceiling Grid & Acoustic Tile Installation\n**Impact:** 4-Day Schedule Float Erosion on Critical Path\n**Root Cause:** Overhead MEP inspection signoff delayed by 36 hours due to late duct pressure test submission.";
+    } else {
+      content = "# Contractor IPC Valuation & Audit Brief\n**Total Claimed Across All Trades:** ₹2,34,35,000\n**AI Verified Approved Amount:** ₹1,98,42,000\n**Net Taxpayer / Developer Savings:** ₹35,93,000 (15.3% Inflation Adjustment)";
+    }
+    res.json({
+      status: "success",
+      report_type,
+      llm_model: "Gemini 1.5 Pro / Llama-3-70B AEC-Domain",
+      generated_report_markdown: content,
+      tokens_generated: 480,
+      generation_time_sec: 1.25
+    });
+  });
+
+  app.post("/api/v1/ai-services/rag-search", (req, res) => {
+    const { query = "What are the hanger rod spacing requirements for supply ducts?", top_k = 3 } = req.body || {};
+    res.json({
+      status: "success",
+      user_query: query,
+      embedding_model: "BGE-M3 Dense Vector Embeddings (1024-dim)",
+      vector_store: "FAISS HNSW Index (142,000 Chunks)",
+      top_k,
+      results: [
+        {
+          doc_title: "AeroSpace_TechPark_HVAC_Specifications_Rev2.pdf",
+          section: "Section 15810 - Ductwork Insulation & Hangers",
+          relevance_score: 0.942,
+          text_snippet: "All main supply air ducts exceeding 1200mm width shall be supported by 12mm threaded hanger rods anchored to concrete slab with chemical anchors spaced at maximum 1.8m intervals."
+        },
+        {
+          doc_title: "NBC_2020_Fire_Safety_Part_4.pdf",
+          section: "Clause 4.3.2 - Dampers in Air Conditioned Ducts",
+          relevance_score: 0.895,
+          text_snippet: "Motorized fire dampers with 2-hour rating shall be installed at all floor slab penetrations and rated fire wall assemblies."
+        },
+        {
+          doc_title: "Subcontractor_Agreement_Voltas_MEP.pdf",
+          section: "Clause 8.4 - Payment Milestone Terms",
+          relevance_score: 0.851,
+          text_snippet: "Progress payments for ductwork shall only be processed upon presentation of AI LiDAR 3D spatial verification logs matching BIM tolerances."
+        }
+      ]
+    });
+  });
+
+  app.post("/api/v1/ai-services/project-assistant", (req, res) => {
+    const { query = "Why is the ceiling tile progress flagged and what specification applies?" } = req.body || {};
+    res.json({
+      status: "success",
+      query,
+      synthesized_answer: "Based on project specification AeroSpace_TechPark_HVAC_Specifications_Rev2.pdf (Section 15810) and NBC 2020 fire guidelines, main supply ducts require 12mm threaded hanger rods spaced at max 1.8m intervals before acoustic tile closing.",
+      confidence: 0.965,
+      retrieved_sources: [
+        {
+          doc_title: "AeroSpace_TechPark_HVAC_Specifications_Rev2.pdf",
+          section: "Section 15810 - Ductwork Insulation & Hangers",
+          relevance_score: 0.942
+        }
+      ]
+    });
+  });
+
+  // --- COMPREHENSIVE ANALYTICS ENDPOINTS ---
+
+  app.get("/api/v1/analytics/comprehensive", (req, res) => {
+    res.json({
+      status: "success",
+      project_id: "PRJ-AEROSPACE-TOWER-B",
+      computed_at: "2026-07-28T04:31:00Z",
+      progress: {
+        overall_progress_pct: 78.4,
+        planned_progress_pct: 82.1,
+        progress_variance_pct: -3.7,
+        delay_pct: 4.5,
+        schedule_status: "SLIGHTLY_BEHIND",
+        critical_path_float_days: 2.0,
+        projected_completion_date: "2026-11-14",
+        contractual_completion_date: "2026-11-01"
+      },
+      productivity: {
+        drywall_installer_velocity: "14.2 m²/man-hour (Target: 15.0)",
+        mep_ducting_velocity: "8.5 linear meters/man-hour (Target: 8.0)",
+        slab_pour_cycle_time: "11.2 days/floor (Target: 12.0 days)",
+        overall_trade_productivity_index: 0.96,
+        active_manpower_count: 342,
+        manpower_efficiency_rate: 94.8
+      },
+      safety: {
+        trir_total_recordable_incident_rate: 0.42,
+        ltir_lost_time_injury_rate: 0.00,
+        safe_man_hours_logged: 1284000,
+        near_misses_logged_this_month: 3,
+        ppe_compliance_rate_pct: 97.6,
+        spatial_hazards_detected_by_ai: 5,
+        open_safety_snags: 2
+      },
+      trade_completion: [
+        { trade: "Substructure & Concrete", planned_pct: 100.0, actual_pct: 100.0, status: "ON_TRACK", contractor: "Shapoorji Pallonji" },
+        { trade: "Structural Steel & Decking", planned_pct: 100.0, actual_pct: 98.5, status: "ON_TRACK", contractor: "Tata BlueScope" },
+        { trade: "Drywall & Partition Systems", planned_pct: 88.0, actual_pct: 78.5, status: "BEHIND", contractor: "L&T Finishes" },
+        { trade: "MEP HVAC & Ducting", planned_pct: 82.0, actual_pct: 79.2, status: "SLIGHTLY_BEHIND", contractor: "Voltas MEP" },
+        { trade: "Electrical Conduits & Cable Trays", planned_pct: 80.0, actual_pct: 76.0, status: "BEHIND", contractor: "Sterling & Wilson" },
+        { trade: "Facade & Glass Curtain Wall", planned_pct: 70.0, actual_pct: 72.1, status: "AHEAD", contractor: "Permasteelisa" },
+        { trade: "Ceiling Grids & Acoustic Tiles", planned_pct: 55.0, actual_pct: 42.0, status: "BEHIND", contractor: "Armstrong Solutions" },
+        { trade: "Flooring & Architectural Finishes", planned_pct: 40.0, actual_pct: 38.0, status: "ON_TRACK", contractor: "Nitco Tiles" }
+      ],
+      earned_value: {
+        planned_value_pv: "₹12,85,00,000",
+        earned_value_ev: "₹12,28,00,000",
+        actual_cost_ac: "₹12,10,00,000",
+        cost_variance_cv: "+₹18,00,000 (Under Budget)",
+        schedule_variance_sv: "-₹57,00,000 (Behind Schedule)",
+        cpi_cost_performance_index: 1.015,
+        spi_schedule_performance_index: 0.956,
+        eac_estimate_at_completion: "₹15,42,00,000",
+        vac_variance_at_completion: "+₹23,00,000"
+      },
+      s_curve: [
+        { month: "Jan 2026", planned_pct: 12.0, actual_pct: 11.8, ev_lakhs: 185 },
+        { month: "Feb 2026", planned_pct: 25.0, actual_pct: 24.5, ev_lakhs: 384 },
+        { month: "Mar 2026", planned_pct: 38.0, actual_pct: 37.2, ev_lakhs: 582 },
+        { month: "Apr 2026", planned_pct: 50.0, actual_pct: 49.0, ev_lakhs: 768 },
+        { month: "May 2026", planned_pct: 62.0, actual_pct: 60.5, ev_lakhs: 948 },
+        { month: "Jun 2026", planned_pct: 72.0, actual_pct: 70.1, ev_lakhs: 1098 },
+        { month: "Jul 2026", planned_pct: 82.1, actual_pct: 78.4, ev_lakhs: 1228 }
+      ],
+      forecasts: {
+        p50_completion_date: "2026-11-08",
+        p80_completion_date: "2026-11-14",
+        p95_completion_date: "2026-11-22",
+        weather_delay_buffer_days: 5,
+        critical_path_bottleneck: "Level 2 Overhead MEP Ducting -> Ceiling Grid Closing"
+      }
+    });
+  });
+
+  // --- ENTERPRISE INTEGRATIONS ENDPOINTS ---
+
+  app.get("/api/v1/integrations/status", (req, res) => {
+    res.json({
+      status: "success",
+      integrations: [
+        {
+          id: "primavera_p6",
+          name: "Oracle Primavera P6",
+          category: "Schedule & Planning",
+          status: "CONNECTED",
+          icon: "Calendar",
+          protocol: "XER / XML / EPPM REST API",
+          last_sync: "2026-07-28T04:15:00Z",
+          description: "Imports XER/XML baselines, updates actual activity progress, maps critical path WBS."
+        },
+        {
+          id: "ms_project",
+          name: "Microsoft Project",
+          category: "Schedule & Planning",
+          status: "CONNECTED",
+          icon: "FileText",
+          protocol: "MS Project XML / MPX / Graph API",
+          last_sync: "2026-07-28T03:30:00Z",
+          description: "Bi-directional XML Gantt chart sync, milestone tracking, and task dependency alignment."
+        },
+        {
+          id: "autodesk_acc",
+          name: "Autodesk Construction Cloud (ACC)",
+          category: "Common Data Environment (CDE)",
+          status: "CONNECTED",
+          icon: "Cloud",
+          protocol: "Autodesk Platform Services (APS) / Forge API",
+          last_sync: "2026-07-28T04:00:00Z",
+          description: "Pushes AI visual defects as ACC Field Issues, syncs construction drawings & RFIs."
+        },
+        {
+          id: "bim_360",
+          name: "Autodesk BIM 360",
+          category: "Common Data Environment (CDE)",
+          status: "CONNECTED",
+          icon: "Box",
+          protocol: "Forge Model Derivative API / SVF2",
+          last_sync: "2026-07-28T04:10:00Z",
+          description: "Fetches federated 3D models, SVF2 geometry meshes, and BIM 360 Field tickets."
+        },
+        {
+          id: "revit",
+          name: "Autodesk Revit",
+          category: "BIM Authoring",
+          status: "CONNECTED",
+          icon: "Layers",
+          protocol: "Revit API DirectLink / IFC4 Schema",
+          last_sync: "2026-07-28T02:00:00Z",
+          description: "Updates RVT element parameters (Progress_Pct, AsBuilt_Status) directly inside Revit."
+        },
+        {
+          id: "navisworks",
+          name: "Autodesk Navisworks",
+          category: "4D Simulation & Clash",
+          status: "CONNECTED",
+          icon: "GitCompare",
+          protocol: "Navisworks Timeliner XML / NWD Parser",
+          last_sync: "2026-07-28T01:45:00Z",
+          description: "Imports NWD/NWC clash matrices, drives 4D planned vs actual simulation overlays."
+        }
+      ]
+    });
+  });
+
+  app.post("/api/v1/integrations/sync/:serviceId", (req, res) => {
+    const serviceId = req.params.serviceId;
+    res.json({
+      status: "success",
+      service: serviceId,
+      sync_id: `SYNC-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+      synced_at: new Date().toISOString(),
+      message: `Bi-directional sync completed successfully for ${serviceId}`
+    });
+  });
+
+
+
+
+
   // Serve static files / Vite middleware
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

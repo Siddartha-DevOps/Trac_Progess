@@ -59,15 +59,15 @@ interface RoomElementStatus {
 const TRADE_CONFIGS: TradeConfig[] = [
   {
     id: "drywall",
-    tradeName: "Drywall & Partition Systems",
+    tradeName: "Wall Systems & Drywall Partitions",
     contractor: "Shapoorji Finishing & Drywall Corp",
     claimedProgress: 88,
-    aiVerifiedProgress: 64,
+    aiVerifiedProgress: 78.5,
     totalQuantity: "4,250 m²",
     unit: "m²",
     claimedAmount: "₹38,25,000",
-    aiApprovedAmount: "₹27,84,000",
-    discrepancyAmount: "₹10,41,000",
+    aiApprovedAmount: "₹33,36,000",
+    discrepancyAmount: "₹4,89,000",
     stages: [
       { stepNumber: 1, name: "Layout & Floor/Ceiling Track", weight: 10 },
       { stepNumber: 2, name: "Metal Stud Framing", weight: 15 },
@@ -82,16 +82,35 @@ const TRADE_CONFIGS: TradeConfig[] = [
     ]
   },
   {
+    id: "ceilings",
+    tradeName: "Ceiling Systems & Acoustic Grid",
+    contractor: "Armstrong Ceiling Interiors",
+    claimedProgress: 80,
+    aiVerifiedProgress: 62.0,
+    totalQuantity: "3,100 m²",
+    unit: "m²",
+    claimedAmount: "₹24,80,000",
+    aiApprovedAmount: "₹19,22,000",
+    discrepancyAmount: "₹5,58,000",
+    stages: [
+      { stepNumber: 1, name: "Hanger Wire & Main Runners", weight: 20 },
+      { stepNumber: 2, name: "Cross-Tees Grid Assembly", weight: 25 },
+      { stepNumber: 3, name: "Overhead MEP Clearance QC", weight: 15 },
+      { stepNumber: 4, name: "Acoustic Tile Insertion", weight: 25 },
+      { stepNumber: 5, name: "Light & Diffuser Cutouts", weight: 15 }
+    ]
+  },
+  {
     id: "hvac",
     tradeName: "MEP Mechanical & HVAC Ducts",
     contractor: "Voltas MEP Solutions Ltd",
-    claimedProgress: 75,
-    aiVerifiedProgress: 72,
+    claimedProgress: 90,
+    aiVerifiedProgress: 84.0,
     totalQuantity: "1,850 m",
     unit: "meters",
     claimedAmount: "₹52,10,000",
-    aiApprovedAmount: "₹50,01,600",
-    discrepancyAmount: "₹2,08,400",
+    aiApprovedAmount: "₹48,65,000",
+    discrepancyAmount: "₹3,45,000",
     stages: [
       { stepNumber: 1, name: "Ceiling Hanger Rods & Anchors", weight: 10 },
       { stepNumber: 2, name: "Main Duct Trunk Line Assembly", weight: 25 },
@@ -103,23 +122,111 @@ const TRADE_CONFIGS: TradeConfig[] = [
     ]
   },
   {
-    id: "electrical",
-    tradeName: "MEP Electrical & Cable Trays",
-    contractor: "L&T Electrical & Automation",
-    claimedProgress: 92,
-    aiVerifiedProgress: 81,
-    totalQuantity: "3,100 m",
-    unit: "meters",
-    claimedAmount: "₹44,50,000",
-    aiApprovedAmount: "₹39,18,000",
-    discrepancyAmount: "₹5,32,000",
+    id: "doors",
+    tradeName: "Door Assemblies & Hardware",
+    contractor: "Dormakaba Door Solutions",
+    claimedProgress: 95,
+    aiVerifiedProgress: 90.0,
+    totalQuantity: "140 units",
+    unit: "doors",
+    claimedAmount: "₹18,20,000",
+    aiApprovedAmount: "₹17,24,000",
+    discrepancyAmount: "₹96,000",
     stages: [
-      { stepNumber: 1, name: "Overhead Cable Tray Installation", weight: 20 },
-      { stepNumber: 2, name: "In-Wall Conduit Rough-in", weight: 20 },
-      { stepNumber: 3, name: "Junction Box & Panel Mounting", weight: 15 },
-      { stepNumber: 4, name: "Cable Pulling & Wiring", weight: 25 },
-      { stepNumber: 5, name: "Switch & Receptacle Trim-out", weight: 10 },
-      { stepNumber: 6, name: "Continuity & Megger Testing", weight: 10 }
+      { stepNumber: 1, name: "Rough Opening & Frame Anchor", weight: 25 },
+      { stepNumber: 2, name: "Door Leaf Hanging & Hinge Pin", weight: 30 },
+      { stepNumber: 3, name: "Mortise Lockset & Handle Hardware", weight: 25 },
+      { stepNumber: 4, name: "Hydraulic Closer & Weather Seal", weight: 20 }
+    ]
+  },
+  {
+    id: "windows",
+    tradeName: "Window Assemblies & Facade Glazing",
+    contractor: "Saint-Gobain Facades",
+    claimedProgress: 100,
+    aiVerifiedProgress: 95.0,
+    totalQuantity: "680 m²",
+    unit: "m²",
+    claimedAmount: "₹45,00,000",
+    aiApprovedAmount: "₹42,75,000",
+    discrepancyAmount: "₹2,25,000",
+    stages: [
+      { stepNumber: 1, name: "Rough Opening Flashing", weight: 20 },
+      { stepNumber: 2, name: "Mullion Subframe Anchor", weight: 30 },
+      { stepNumber: 3, name: "Double Glazed Unit Setting", weight: 35 },
+      { stepNumber: 4, name: "Exterior Perimeter Caulking", weight: 15 }
+    ]
+  },
+  {
+    id: "flooring",
+    tradeName: "Flooring Finishes & Tile Laying",
+    contractor: "Kajaria Ceramics & Flooring",
+    claimedProgress: 65,
+    aiVerifiedProgress: 45.0,
+    totalQuantity: "2,800 m²",
+    unit: "m²",
+    claimedAmount: "₹28,00,000",
+    aiApprovedAmount: "₹19,38,000",
+    discrepancyAmount: "₹8,62,000",
+    stages: [
+      { stepNumber: 1, name: "Subfloor Prep & Grinding", weight: 15 },
+      { stepNumber: 2, name: "Self-Leveling Screed Pour", weight: 25 },
+      { stepNumber: 3, name: "Tile Thinset Placement", weight: 40 },
+      { stepNumber: 4, name: "Grouting & Sealant", weight: 20 }
+    ]
+  },
+  {
+    id: "painting",
+    tradeName: "Architectural Painting & Coatings",
+    contractor: "Asian Paints Project Solutions",
+    claimedProgress: 70,
+    aiVerifiedProgress: 50.0,
+    totalQuantity: "6,200 m²",
+    unit: "m²",
+    claimedAmount: "₹12,40,000",
+    aiApprovedAmount: "₹8,85,000",
+    discrepancyAmount: "₹3,55,000",
+    stages: [
+      { stepNumber: 1, name: "Surface Dusting & Masking", weight: 15 },
+      { stepNumber: 2, name: "Primer Sealer Coat", weight: 35 },
+      { stepNumber: 3, name: "First Coat Emulsion", weight: 30 },
+      { stepNumber: 4, name: "Final Topcoat & Touchups", weight: 20 }
+    ]
+  },
+  {
+    id: "finishing",
+    tradeName: "Finishing & Millwork Trim",
+    contractor: "Godrej Interior Solutions",
+    claimedProgress: 50,
+    aiVerifiedProgress: 30.0,
+    totalQuantity: "950 m",
+    unit: "meters",
+    claimedAmount: "₹15,00,000",
+    aiApprovedAmount: "₹9,00,000",
+    discrepancyAmount: "₹6,00,000",
+    stages: [
+      { stepNumber: 1, name: "Skirting Board Mounting", weight: 35 },
+      { stepNumber: 2, name: "Recessed Wall Inserts", weight: 25 },
+      { stepNumber: 3, name: "Electrical Faceplates", weight: 20 },
+      { stepNumber: 4, name: "Final Inspection Cleanup", weight: 20 }
+    ]
+  },
+  {
+    id: "structural",
+    tradeName: "Structural Progress & Concrete",
+    contractor: "L&T Heavy Civil Engineering",
+    claimedProgress: 100,
+    aiVerifiedProgress: 100.0,
+    totalQuantity: "1,200 m³",
+    unit: "m³",
+    claimedAmount: "₹85,00,000",
+    aiApprovedAmount: "₹85,00,000",
+    discrepancyAmount: "₹0",
+    stages: [
+      { stepNumber: 1, name: "Rebar Cage Tying", weight: 25 },
+      { stepNumber: 2, name: "Formwork Erection", weight: 25 },
+      { stepNumber: 3, name: "Concrete Pour & Vibration", weight: 25 },
+      { stepNumber: 4, name: "28-Day Curing & Stripping", weight: 25 }
     ]
   }
 ];

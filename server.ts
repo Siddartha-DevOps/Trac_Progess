@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { ScheduleDelayEngineTS } from "./src/lib/scheduleEngine";
+import helmetRouter from "./server/helmet/routes";
 
 // Lazy-initialized Gemini Client helper
 let aiClient: GoogleGenAI | null = null;
@@ -30,8 +31,11 @@ async function startServer() {
   const PORT = 3000;
 
   // Setup body parsers
-  app.use(express.json());
+  app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
+
+  // 360° helmet-camera ingestion: device registry + chunked uploads.
+  app.use(helmetRouter);
 
   // API Route: Health Check
   app.get("/api/health", (req, res) => {

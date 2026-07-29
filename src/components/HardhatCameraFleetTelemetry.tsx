@@ -1,99 +1,66 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { 
-  Camera, 
-  Battery, 
-  BatteryCharging, 
-  HardDrive, 
-  Bluetooth, 
-  MapPin, 
-  Wifi, 
-  AlertTriangle, 
-  Sparkles, 
-  RefreshCw, 
-  UserCheck, 
-  Footprints, 
-  ShieldAlert, 
-  Activity, 
-  Zap, 
+import {
+  Camera,
+  Battery,
+  BatteryCharging,
+  HardDrive,
+  Bluetooth,
+  MapPin,
+  Wifi,
+  AlertTriangle,
+  Sparkles,
+  RefreshCw,
+  UserCheck,
+  Footprints,
+  ShieldAlert,
+  Activity,
+  Zap,
   X,
   CheckCircle2,
-  Clock
+  Clock,
+  Upload,
+  KeyRound,
+  Loader2
 } from "lucide-react";
 import { useAppStore } from "../store";
-
-interface CameraDevice {
-  id: string;
-  model: string;
-  serialNo: string;
-  batteryPercent: number;
-  sdCardUsedPercent: number;
-  bluetoothStatus: "Connected" | "Disconnected" | "Pairing";
-  assignedWalker: string;
-  assignedFloor: string;
-  gpsSlamQuality: number; // percentage
-  status: "Active Capture" | "Charging / Idle" | "Low Battery Warning";
-  lastSyncTime: string;
-}
-
-const HARDHAT_CAMERAS: CameraDevice[] = [
-  {
-    id: "CAM-01",
-    model: "Insta360 Pro 2 SLAM Edition",
-    serialNo: "IN360-8841-A",
-    batteryPercent: 88,
-    sdCardUsedPercent: 42,
-    bluetoothStatus: "Connected",
-    assignedWalker: "Dave Miller (Site Superintendent)",
-    assignedFloor: "Floor 3 East Wing",
-    gpsSlamQuality: 99.4,
-    status: "Active Capture",
-    lastSyncTime: "2 mins ago"
-  },
-  {
-    id: "CAM-02",
-    model: "Insta360 Pro 2 SLAM Edition",
-    serialNo: "IN360-8841-B",
-    batteryPercent: 64,
-    sdCardUsedPercent: 78,
-    bluetoothStatus: "Connected",
-    assignedWalker: "Alex Rivera (Field Engineer)",
-    assignedFloor: "Floor 2 Mechanical Room",
-    gpsSlamQuality: 98.1,
-    status: "Active Capture",
-    lastSyncTime: "5 mins ago"
-  },
-  {
-    id: "CAM-03",
-    model: "GoPro MAX 360 Enterprise",
-    serialNo: "GP360-1120-X",
-    batteryPercent: 18,
-    sdCardUsedPercent: 91,
-    bluetoothStatus: "Connected",
-    assignedWalker: "Carlos Santos (Quality Inspector)",
-    assignedFloor: "Floor 4 Exterior West Facade",
-    gpsSlamQuality: 92.5,
-    status: "Low Battery Warning",
-    lastSyncTime: "1 min ago"
-  },
-  {
-    id: "CAM-04",
-    model: "Insta360 Pro 2 SLAM Edition",
-    serialNo: "IN360-8841-C",
-    batteryPercent: 100,
-    sdCardUsedPercent: 12,
-    bluetoothStatus: "Disconnected",
-    assignedWalker: "Unassigned (Docking Station)",
-    assignedFloor: "Site Office Dock #2",
-    gpsSlamQuality: 100,
-    status: "Charging / Idle",
-    lastSyncTime: "30 mins ago"
-  }
-];
+import { useDevices } from "../hooks/useDevices";
+import { useChunkedUpload } from "../hooks/useChunkedUpload";
+import { deviceApi, type DeviceRecord as CameraDevice } from "../services/deviceApi";
 
 export default function HardhatCameraFleetTelemetry() {
   const { setActiveTab } = useAppStore();
-  const [cameras, setCameras] = useState<CameraDevice[]>(HARDHAT_CAMERAS);
+  const { devices: cameras, loading: fleetLoading, error: fleetError, refresh } = useDevices();
+  const chunkedUpload = useChunkedUpload();
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [pairingBusy, setPairingBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleIssuePairingCode = async () => {
+    setPairingBusy(true);
+    try {
+      const p = await deviceApi.createPairing();
+      setPairingCode(p);
+    } catch (e) {
+      console.error("Pairing code request failed", e);
+    } finally {
+      setPairingBusy(false);
+    }
+  };
+
+  const handlePickFile = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selectedDeviceId) return;
+    await chunkedUpload.upload({ deviceId: selectedDeviceId, file });
+    refresh();
+  };
 
   // AI Fleet Telemetry state
   const [isAiDiagnosing, setIsAiDiagnosing] = useState<boolean>(false);
@@ -122,8 +89,37 @@ export default function HardhatCameraFleetTelemetry() {
     }
   };
 
+  const fleetMetrics = useMemo(() => {
+    const activeUnits = cameras.filter((c) => c.status !== "Offline" && c.status !== "Unpaired").length;
+    const activeWalkers = cameras.filter((c) => c.status === "Active Capture").length;
+    const avgBattery = cameras.length
+      ? cameras.reduce((s, c) => s + c.batteryPercent, 0) / cameras.length
+      : 0;
+    const lowBatteryCameras = cameras.filter((c) => c.batteryPercent < 25);
+    const avgSlam = cameras.length
+      ? cameras.reduce((s, c) => s + c.gpsSlamQuality, 0) / cameras.length
+      : 0;
+    const avgSd = cameras.length
+      ? cameras.reduce((s, c) => s + c.sdCardUsedPercent, 0) / cameras.length
+      : 0;
+    const worstSd = cameras.reduce<CameraDevice | null>(
+      (worst, c) => (!worst || c.sdCardUsedPercent > worst.sdCardUsedPercent ? c : worst),
+      null
+    );
+    return { activeUnits, activeWalkers, avgBattery, lowBatteryCameras, avgSlam, avgSd, worstSd };
+  }, [cameras]);
+
   return (
     <div className="space-y-6 pb-12">
+      {/* Hidden file input used by per-card "Upload capture" buttons */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*,.mp4,.mov,.insv,.360"
+        className="hidden"
+        onChange={handleFileChosen}
+      />
+
       {/* HEADER BANNER */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -150,6 +146,14 @@ export default function HardhatCameraFleetTelemetry() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
+              onClick={handleIssuePairingCode}
+              disabled={pairingBusy}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all font-mono"
+            >
+              {pairingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+              <span>Pair New Device</span>
+            </button>
+            <button
               onClick={handleRunFleetDiagnostics}
               disabled={isAiDiagnosing}
               className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all font-mono"
@@ -161,6 +165,71 @@ export default function HardhatCameraFleetTelemetry() {
         </div>
       </div>
 
+      {/* PAIRING CODE PANEL */}
+      {pairingCode && (
+        <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <KeyRound className="w-5 h-5 text-amber-400" />
+            <div className="font-mono text-xs">
+              <div className="text-amber-300 font-bold">DEVICE PAIRING CODE — enter this on the helmet camera SDK</div>
+              <div className="text-slate-400 text-[11px]">
+                Expires at {new Date(pairingCode.expiresAt).toLocaleTimeString()} · POST /api/devices/pair/complete
+              </div>
+            </div>
+          </div>
+          <div className="text-3xl font-black text-amber-400 tracking-widest font-mono">{pairingCode.code}</div>
+          <button onClick={() => setPairingCode(null)} className="text-slate-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* UPLOAD PROGRESS PANEL */}
+      {(chunkedUpload.busy || chunkedUpload.session || chunkedUpload.error) && (
+        <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl p-5 shadow-xl space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2 text-cyan-400 font-mono font-bold text-xs">
+              <Upload className="w-4 h-4" />
+              <span>
+                {chunkedUpload.busy
+                  ? "UPLOADING 360° CAPTURE"
+                  : chunkedUpload.error
+                  ? "UPLOAD FAILED"
+                  : "UPLOAD COMPLETE"}
+              </span>
+              {chunkedUpload.session && (
+                <span className="text-slate-500">· {chunkedUpload.session.filename}</span>
+              )}
+            </div>
+            <button
+              onClick={chunkedUpload.busy ? chunkedUpload.abort : chunkedUpload.reset}
+              className="text-slate-400 hover:text-white text-xs font-mono"
+            >
+              {chunkedUpload.busy ? "Abort" : "Dismiss"}
+            </button>
+          </div>
+          <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+            <div
+              className="h-full bg-cyan-500 transition-all"
+              style={{ width: `${Math.round(chunkedUpload.progress * 100)}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-4 text-[11px] font-mono text-slate-400">
+            <span>Progress: <strong className="text-cyan-400">{Math.round(chunkedUpload.progress * 100)}%</strong></span>
+            {chunkedUpload.session && (
+              <>
+                <span>Chunks: {chunkedUpload.session.receivedChunks.length}/{chunkedUpload.session.totalChunks}</span>
+                <span>Upload ID: {chunkedUpload.session.uploadId}</span>
+                <span>Status: {chunkedUpload.session.status}</span>
+              </>
+            )}
+          </div>
+          {chunkedUpload.error && (
+            <div className="text-rose-400 font-mono text-xs">{chunkedUpload.error}</div>
+          )}
+        </div>
+      )}
+
       {/* METRICS METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md">
@@ -168,9 +237,11 @@ export default function HardhatCameraFleetTelemetry() {
             <span>TOTAL FLEET CAMERAS</span>
             <Camera className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-2xl font-black text-white mt-1">4 Units Online</div>
+          <div className="text-2xl font-black text-white mt-1">
+            {fleetMetrics.activeUnits} Units Online
+          </div>
           <div className="text-[11px] text-cyan-400 font-mono mt-1">
-            <span>3 Active Capture Walkers</span>
+            <span>{fleetMetrics.activeWalkers} Active Capture Walkers</span>
           </div>
         </div>
 
@@ -179,9 +250,14 @@ export default function HardhatCameraFleetTelemetry() {
             <span>AVERAGE FLEET BATTERY</span>
             <BatteryCharging className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-emerald-400 mt-1">67.5%</div>
+          <div className="text-2xl font-black text-emerald-400 mt-1">
+            {fleetMetrics.avgBattery.toFixed(1)}%
+          </div>
           <div className="text-[11px] text-amber-400 font-mono mt-1">
-            <span>1 Low Battery Warning (CAM-03)</span>
+            {fleetMetrics.lowBatteryCameras.length === 0
+              ? <span>No low-battery cameras</span>
+              : <span>{fleetMetrics.lowBatteryCameras.length} Low Battery Warning ({fleetMetrics.lowBatteryCameras.map((c) => c.id).join(", ")})</span>
+            }
           </div>
         </div>
 
@@ -190,7 +266,9 @@ export default function HardhatCameraFleetTelemetry() {
             <span>GPS & SLAM TRAJECTORY ACCURACY</span>
             <Footprints className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl font-black text-indigo-400 mt-1">97.5%</div>
+          <div className="text-2xl font-black text-indigo-400 mt-1">
+            {fleetMetrics.avgSlam.toFixed(1)}%
+          </div>
           <div className="text-[11px] text-slate-400 font-mono mt-1">
             <span>±1.5cm Spatial Mesh Precision</span>
           </div>
@@ -201,12 +279,29 @@ export default function HardhatCameraFleetTelemetry() {
             <span>SD CARD STORAGE CAPACITY</span>
             <HardDrive className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-black text-amber-400 mt-1">55.8% Avg Used</div>
+          <div className="text-2xl font-black text-amber-400 mt-1">
+            {fleetMetrics.avgSd.toFixed(1)}% Avg Used
+          </div>
           <div className="text-[11px] text-slate-400 font-mono mt-1">
-            <span>CAM-03 at 91% (SD Swap Req)</span>
+            {fleetMetrics.worstSd
+              ? <span>{fleetMetrics.worstSd.id} at {fleetMetrics.worstSd.sdCardUsedPercent}%{fleetMetrics.worstSd.sdCardUsedPercent > 85 ? " (SD Swap Req)" : ""}</span>
+              : <span>—</span>
+            }
           </div>
         </div>
       </div>
+
+      {/* ERROR / LOADING BANNER */}
+      {fleetError && (
+        <div className="bg-rose-950/30 border border-rose-500/40 rounded-2xl p-4 text-rose-300 text-xs font-mono">
+          Failed to load device fleet: {fleetError}
+        </div>
+      )}
+      {fleetLoading && cameras.length === 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-slate-400 text-xs font-mono flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading fleet…
+        </div>
+      )}
 
       {/* AI TELEMETRY REPORT PANEL */}
       {telemetryReport && (
@@ -326,6 +421,18 @@ export default function HardhatCameraFleetTelemetry() {
                   <strong className="text-emerald-400">{cam.gpsSlamQuality}%</strong>
                 </div>
               </div>
+
+              {/* UPLOAD CAPTURE BUTTON */}
+              <button
+                onClick={() => handlePickFile(cam.id)}
+                disabled={chunkedUpload.busy}
+                className="mt-3 w-full px-3 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 disabled:opacity-50 border border-cyan-500/40 text-cyan-300 rounded-lg text-[11px] font-mono font-bold flex items-center justify-center gap-2 transition"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {chunkedUpload.busy && selectedDeviceId === cam.id
+                  ? "Uploading capture…"
+                  : "Upload capture (chunked, resumable)"}
+              </button>
             </div>
           ))}
         </div>

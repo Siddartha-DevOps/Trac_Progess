@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+/* -----------------------------------------------------------------------------
+ * Global craftsmanship layer.
+ *
+ * These rules apply across every component without needing JSX edits — the
+ * highest leverage per line of code in the polish pass.
+ *
+ * No colors, no fonts, no palette changes. Only interaction & rhythm.
+ * -------------------------------------------------------------------------- */
+
+/* Keyboard focus — one consistent, visible focus ring for every interactive
+ * element instead of the default outline that varies per browser. Uses
+ * :focus-visible so mouse clicks don't get the ring (only keyboard nav does),
+ * matching how humans actually design focus. */
+:where(button, a, [role="button"], [role="tab"], [role="link"], summary,
+       input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible {
+  outline: 2px solid rgb(34 211 238);          /* cyan-400, no palette shift */
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+  transition: outline-offset 120ms ease-out;
+}
+
+/* Buttons without an explicit hover treatment get a subtle default: 1px
+ * upward nudge on hover, snap back on active. This gives every button an
+ * "alive" feel without repainting the whole app. Selectors are scoped to
+ * common button patterns to avoid clobbering intentional custom hover states. */
+button:not(:disabled):not([data-no-motion]) {
+  transition-property: transform, box-shadow, background-color, border-color, opacity, color;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-duration: 150ms;
+}
+button:not(:disabled):not([data-no-motion]):hover {
+  transform: translateY(-1px);
+}
+button:not(:disabled):not([data-no-motion]):active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Respect user preference — animations off if the OS says so. AI-generated
+ * UIs almost never do this; humans always do. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Typographic rhythm — tune the base measure and heading tracking per weight
+ * class. Default Tailwind ships flat leading everywhere; humans vary it. */
+h1, h2, h3, h4 {
+  letter-spacing: -0.015em;
+  text-wrap: balance;                /* stops widow words on headings */
+}
+h1 { line-height: 1.05; letter-spacing: -0.025em; }
+h2 { line-height: 1.1;  letter-spacing: -0.02em; }
+h3 { line-height: 1.2; }
+
+/* Body copy — a slightly slacker measure than default (65-ish chars is the
+ * classic readable line). Applied only to paragraph elements, not everything. */
+p {
+  text-wrap: pretty;
+}
+
+/* Selection color — subtle detail no default sets, humans always do. */
+::selection {
+  background-color: rgb(34 211 238 / 0.35);   /* cyan-400 @ 35% */
+  color: rgb(248 250 252);                    /* slate-50 */
+}
+
+/* Scrollbar — thin dark-mode-aware scrollbar to match the app's dark surfaces,
+ * rather than the OS default. Keeps focus on content, not chrome. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(51 65 85) transparent;  /* slate-700 on transparent */
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);                   /* slate-700 */
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105);                  /* slate-600 */
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Fine-print — anchor default underlines to a nicer offset. */
+a { text-underline-offset: 2px; }

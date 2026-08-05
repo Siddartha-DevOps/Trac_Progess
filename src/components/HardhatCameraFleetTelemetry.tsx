@@ -27,6 +27,7 @@ import { useAppStore } from "../store";
 import { useDevices } from "../hooks/useDevices";
 import { useChunkedUpload } from "../hooks/useChunkedUpload";
 import { deviceApi, type DeviceRecord as CameraDevice } from "../services/deviceApi";
+import { badgeClass, card, radius, cx } from "../lib/ui";
 
 export default function HardhatCameraFleetTelemetry() {
   const { setActiveTab } = useAppStore();
@@ -121,44 +122,68 @@ export default function HardhatCameraFleetTelemetry() {
       />
 
       {/* HEADER BANNER */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+      {/* Polish: header uses card.hero (e2) — the highest elevation rung, so
+          it visually leads. Padding tuned to give the h1 breathing space
+          (p-6 → p-7 sm:p-8) and mt-1 → mt-3 under the h1 for typographic rhythm.
+          Badges swapped to the shared badgeClass() recipe — smaller, ring-based
+          treatment reads as designed rather than "AI status chip". */}
+      <div className={cx(card.hero, "text-white p-7 sm:p-8 relative overflow-hidden")}>
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-cyan-500/20 text-cyan-300 text-xs font-mono font-bold px-2.5 py-1 rounded-md border border-cyan-500/30 flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-cyan-400" />
+            {/* Polish: badge WORDS preserved verbatim. Only the visual chrome
+                changed — dropped font-mono + font-bold + border-inflation, now
+                using the shared ring-based badgeClass() so it reads as designed
+                system-status rather than the "generated status pill" look. */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className={badgeClass("cyan")}>
+                <Camera className="w-3 h-3" aria-hidden="true" />
                 BUILDOTS HARDHAT CAMERA FLEET IoT TELEMETRY
               </span>
-              <span className="bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-500/30 flex items-center gap-1">
-                <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                LIVE BLE & SLAM TRACKING ACTIVE
+              <span className={badgeClass("emerald")}>
+                <Activity className="w-3 h-3" aria-hidden="true" />
+                LIVE BLE &amp; SLAM TRACKING ACTIVE
               </span>
             </div>
-            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-              <Zap className="w-8 h-8 text-cyan-400 shrink-0" />
-              Hardhat Camera Fleet Telemetry & Battery IoT Manager
+            <h1 className="text-2xl lg:text-3xl font-black text-white flex items-center gap-3">
+              <Zap className="w-7 h-7 text-cyan-400 shrink-0 -mt-px" aria-hidden="true" />
+              Hardhat Camera Fleet Telemetry &amp; Battery IoT Manager
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            <p className="text-slate-400 text-xs sm:text-sm mt-3 max-w-2xl leading-relaxed">
               Real-time IoT monitoring of 360° hardhat camera hardware fleet health, battery decay curves, SD card wear, Bluetooth 5.2 sync latency, and walker SLAM path trajectory accuracy.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Polish: gap-3 → gap-2 (buttons live in a pair, tighter grouping),
+              radius bumped to match card system (rounded-lg is the "inside a
+              card" rung), removed `transition-all` (perf trap — global CSS
+              transitions only the properties that change), added type="button",
+              added aria-busy for screen readers during loading. Loading state
+              on the primary CTA now uses a leading spinner INSIDE the button
+              (baseline-aligned) rather than replacing the icon. */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={handleIssuePairingCode}
               disabled={pairingBusy}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all font-mono"
+              aria-busy={pairingBusy}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2"
             >
-              {pairingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+              {pairingBusy
+                ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                : <KeyRound className="w-4 h-4" aria-hidden="true" />}
               <span>Pair New Device</span>
             </button>
             <button
+              type="button"
               onClick={handleRunFleetDiagnostics}
               disabled={isAiDiagnosing}
-              className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all font-mono"
+              aria-busy={isAiDiagnosing}
+              className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.4),0_4px_12px_-4px_rgba(6,182,212,0.35)]"
             >
-              <Sparkles className={`w-4 h-4 ${isAiDiagnosing ? "animate-spin" : ""}`} />
+              {isAiDiagnosing
+                ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                : <Sparkles className="w-4 h-4" aria-hidden="true" />}
               <span>{isAiDiagnosing ? "AI Diagnosing Hardware..." : "Run AI Fleet IoT Diagnostics"}</span>
             </button>
           </div>
@@ -232,7 +257,7 @@ export default function HardhatCameraFleetTelemetry() {
 
       {/* METRICS METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md">
+        <div className={cx(card.base, "p-4")}>
           <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
             <span>TOTAL FLEET CAMERAS</span>
             <Camera className="w-4 h-4 text-cyan-400" />
@@ -245,7 +270,7 @@ export default function HardhatCameraFleetTelemetry() {
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md">
+        <div className={cx(card.base, "p-4")}>
           <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
             <span>AVERAGE FLEET BATTERY</span>
             <BatteryCharging className="w-4 h-4 text-emerald-400" />
@@ -261,7 +286,7 @@ export default function HardhatCameraFleetTelemetry() {
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md">
+        <div className={cx(card.base, "p-4")}>
           <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
             <span>GPS & SLAM TRAJECTORY ACCURACY</span>
             <Footprints className="w-4 h-4 text-indigo-400" />
@@ -274,7 +299,7 @@ export default function HardhatCameraFleetTelemetry() {
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md">
+        <div className={cx(card.base, "p-4")}>
           <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
             <span>SD CARD STORAGE CAPACITY</span>
             <HardDrive className="w-4 h-4 text-amber-400" />

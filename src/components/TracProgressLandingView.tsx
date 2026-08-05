@@ -400,7 +400,9 @@ export default function TracProgressLandingView() {
       </header>
 
       {/* 2. PREMIUM ENTERPRISE HERO SECTION */}
-      <section className="relative bg-[#0b0e14] pt-16 pb-24 px-6 md:px-12 overflow-hidden border-b border-white/10">
+      {/* Polish: bumped hero breathing room and made top/bottom asymmetry
+          intentional (hero gets more air than mid-page sections). */}
+      <section className="relative bg-[#0b0e14] pt-20 md:pt-24 lg:pt-32 pb-24 md:pb-28 px-6 md:px-12 overflow-hidden border-b border-white/10">
         
         {/* Subtle dot grid backdrop matching buildots.com style exactly */}
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1.2px,transparent_1.2px)] [background-size:2rem_2rem] opacity-[0.04] pointer-events-none" />
@@ -430,22 +432,28 @@ export default function TracProgressLandingView() {
             </p>
 
             {/* Lime Yellow Button CTA */}
-            <div className="mt-8 flex flex-wrap gap-4 items-center">
+            {/* Polish: unified radius (rounded-md vs default rounded=2px),
+                explicit button type, tightened gap between CTAs, and matching
+                horizontal padding so both buttons share optical baseline.
+                Global focus ring in index.css handles keyboard nav. */}
+            <div className="mt-8 flex flex-wrap gap-3 items-center">
               <button
+                type="button"
                 onClick={() => {
                   const el = document.getElementById("demo-request-section");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="px-7 py-3.5 bg-[#daff00] hover:bg-[#c6e600] text-slate-950 font-black text-sm rounded transition duration-150 shadow-lg shadow-lime-500/10 cursor-pointer font-bold"
+                className="px-6 py-3 bg-[#daff00] hover:bg-[#c6e600] text-slate-950 font-bold text-sm rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.4)] cursor-pointer"
               >
                 Get a demo
               </button>
 
               <button
+                type="button"
                 onClick={() => enterWorkspace(true)}
-                className="px-6 py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold text-sm rounded transition flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-semibold text-sm rounded-md flex items-center gap-2 cursor-pointer"
               >
-                <Tv className="w-4 h-4 text-amber-400" />
+                <Tv className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
                 <span>Launch Simulator</span>
               </button>
             </div>
@@ -478,13 +486,15 @@ export default function TracProgressLandingView() {
               <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox="0 0 1000 625">
                 {/* Golden/Yellow 3D Wireframe overlays tracing high rises */}
                 {/* Tower 1 (Right Center) */}
-                <path 
-                  d="M 520 280 L 590 190 L 710 190 L 800 240 L 800 520 L 720 560 L 590 560 L 520 500 Z" 
-                  fill="rgba(245,158,11,0.03)" 
-                  stroke="rgba(245,158,11,0.8)" 
-                  strokeWidth="2" 
-                  strokeDasharray="4 4 animate-dash" 
-                  className="animate-pulse"
+                {/* Polish: dropped `animate-pulse` (decorative motion slop) and
+                    the invalid `animate-dash` token from strokeDasharray. Static
+                    dashed outline reads as "scan overlay" without the flicker. */}
+                <path
+                  d="M 520 280 L 590 190 L 710 190 L 800 240 L 800 520 L 720 560 L 590 560 L 520 500 Z"
+                  fill="rgba(245,158,11,0.03)"
+                  stroke="rgba(245,158,11,0.85)"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
                 />
                 <path 
                   d="M 590 190 L 590 560 M 710 190 L 710 560 M 800 240 L 720 280 L 520 280 M 720 280 L 720 560" 
@@ -522,18 +532,16 @@ export default function TracProgressLandingView() {
                 <circle cx="300" cy="420" r="4" fill="#f59e0b" />
               </svg>
 
-              {/* Glowing Coordinate Nodes (+ signs matching screenshot) */}
-              <div className="absolute top-[28%] right-[32%] z-20 text-lime-400 font-extrabold text-2xl drop-shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-ping pointer-events-none select-none">
-                +
-              </div>
-              <div className="absolute top-[28%] right-[32%] z-20 text-[#daff00] font-black text-2xl drop-shadow-[0_0_4px_rgba(218,255,0,0.8)] pointer-events-none select-none">
+              {/* Polish: two "+" markers had double glow layers with animate-ping
+                  and animate-pulse — the ping/pulse combination reads as
+                  loading-state flashing. Kept the drop-shadow glow (static)
+                  which conveys the same "coordinate tracked" meaning without
+                  the flicker. */}
+              <div className="absolute top-[28%] right-[32%] z-20 text-[#daff00] font-black text-2xl drop-shadow-[0_0_10px_rgba(218,255,0,0.7)] pointer-events-none select-none">
                 +
               </div>
 
-              <div className="absolute top-[48%] right-[15%] z-20 text-lime-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse pointer-events-none select-none">
-                +
-              </div>
-              <div className="absolute top-[48%] right-[15%] z-20 text-[#daff00] font-black text-xl drop-shadow-[0_0_4px_rgba(218,255,0,0.8)] pointer-events-none select-none">
+              <div className="absolute top-[48%] right-[15%] z-20 text-[#daff00] font-black text-xl drop-shadow-[0_0_10px_rgba(218,255,0,0.7)] pointer-events-none select-none">
                 +
               </div>
 

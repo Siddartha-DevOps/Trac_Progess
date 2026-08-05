@@ -264,7 +264,10 @@ export default function PremiumTopNavigation() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition duration-200 cursor-pointer bg-indigo-50/40 hover:bg-indigo-50/90 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 border border-indigo-100/80 dark:border-indigo-900/40 max-w-[200px] sm:max-w-[280px]"
               aria-label="Switch Project"
             >
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              {/* Polish: swapped animate-pulse for a soft glow — flashing dots
+                  next to project names reads like a persistent alert. Static
+                  dot with a halo conveys "live" without the noise. */}
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)] shrink-0" />
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-black text-indigo-950 dark:text-indigo-200 truncate leading-none font-mono">
                   {activeProject.name}
@@ -377,16 +380,19 @@ export default function PremiumTopNavigation() {
         </button>
 
         {/* AI Assistant Trigger Button (Glow Accent) */}
-        <button 
+        {/* Polish: dropped animate-pulse on sparkle and animate-ping on the
+            pink dot — both are decorative motion with no state meaning. Kept
+            the pink pill (indicates "new") as a static dot which reads clearer
+            than a flashing one. Removed manual hover:scale — global button
+            hover in index.css handles it uniformly. */}
+        <button
+          type="button"
           onClick={() => setAiAssistantOpen(true)}
-          className="relative px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-black font-mono tracking-wide shadow-md hover:bg-indigo-700 transition flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+          className="relative px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-black font-mono tracking-wide shadow-md hover:bg-indigo-700 flex items-center gap-1.5 cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-yellow-300 shrink-0 fill-yellow-300 animate-pulse" />
+          <Sparkles className="w-3.5 h-3.5 text-yellow-300 shrink-0 fill-yellow-300" />
           <span>BUILDTRACE AI</span>
-          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
-          </span>
+          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-pink-500 ring-2 ring-indigo-600" />
         </button>
 
         {/* Dark Mode Toggle */}
@@ -605,7 +611,9 @@ export default function PremiumTopNavigation() {
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2">
                 <div className="bg-indigo-100 dark:bg-indigo-950/60 p-1.5 rounded-lg">
-                  <Sparkles className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400 animate-pulse fill-indigo-100 dark:fill-indigo-950/60" />
+                  {/* Polish: dropped animate-pulse — sparkle icon in a popover
+                      header doesn't communicate live state, only decoration. */}
+                  <Sparkles className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400 fill-indigo-100 dark:fill-indigo-950/60" />
                 </div>
                 <div className="flex flex-col">
                   <h2 className="text-sm font-black text-slate-900 dark:text-slate-100 font-mono uppercase tracking-wide">
